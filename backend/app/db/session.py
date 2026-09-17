@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from typing import Generator, Optional
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
@@ -8,7 +8,7 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine: Engine | None = (
+engine: Optional[Engine] = (
     create_engine(settings.database_url, pool_pre_ping=True) if settings.database_url else None
 )
 

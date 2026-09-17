@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.core.config import get_settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
+import app.models  # noqa: E402,F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,7 +26,6 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # application metadata used for autogenerate support.
-# no application models exist yet as of Phase 3.
 target_metadata = Base.metadata
 
 

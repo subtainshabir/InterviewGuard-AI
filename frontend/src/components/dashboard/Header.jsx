@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Play, Pause, Square } from "lucide-react";
 
 const STATUS_LABEL = {
@@ -7,25 +6,37 @@ const STATUS_LABEL = {
   unavailable: "Backend unavailable",
 };
 
-const SESSION_STATES = ["Ready", "Monitoring", "Paused", "Completed"];
+const SESSION_LABEL = {
+  scheduled: "Ready",
+  ready: "Ready",
+  active: "Monitoring",
+  paused: "Paused",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
 
-export default function Header({ backendStatus }) {
-  const [sessionState, setSessionState] = useState("Ready");
+export default function Header({
+  backendStatus,
+  session,
+  elapsedLabel,
+  busy,
+  onStart,
+  onPause,
+  onResume,
+  onEnd,
+}) {
+  const status = session?.status ?? "scheduled";
+  const label = SESSION_LABEL[status] ?? status;
+  const isActive = status === "active";
+  const isPaused = status === "paused";
+  const isFinished = status === "completed" || status === "cancelled";
+  const canStart = status === "scheduled" || status === "ready";
 
   function handlePrimaryAction() {
-    if (sessionState === "Ready" || sessionState === "Paused") {
-      setSessionState("Monitoring");
-    } else if (sessionState === "Monitoring") {
-      setSessionState("Paused");
-    }
+    if (isActive) onPause();
+    else if (isPaused) onResume();
+    else if (canStart) onStart();
   }
-
-  function handleStop() {
-    setSessionState("Completed");
-  }
-
-  const isMonitoring = sessionState === "Monitoring";
-  const isCompleted = sessionState === "Completed";
 
   return (
     <header className="app-header">
@@ -38,9 +49,10 @@ export default function Header({ backendStatus }) {
       </div>
 
       <div className="header-right">
-        <div className={`session-pill session-${sessionState.toLowerCase()}`}>
+        <div className={`session-pill session-${status}`}>
           <span className="connection-dot" />
-          {sessionState}
+          {label}
+          {(isActive || isPaused) && <span className="session-timer">{elapsedLabel}</span>}
         </div>
 
         <div className={`connection-pill connection-${backendStatus}`}>
@@ -53,16 +65,16 @@ export default function Header({ backendStatus }) {
             type="button"
             className="control-button control-primary"
             onClick={handlePrimaryAction}
-            disabled={isCompleted}
+            disabled={busy || isFinished || !session}
           >
-            {isMonitoring ? <Pause size={14} /> : <Play size={14} />}
-            {isMonitoring ? "Pause" : sessionState === "Paused" ? "Resume" : "Start"}
+            {isActive ? <Pause size={14} /> : <Play size={14} />}
+            {isActive ? "Pause" : isPaused ? "Resume" : "Start"}
           </button>
           <button
             type="button"
             className="control-button"
-            onClick={handleStop}
-            disabled={isCompleted || sessionState === "Ready"}
+            onClick={onEnd}
+            disabled={busy || isFinished || !session || canStart}
           >
             <Square size={14} />
             End

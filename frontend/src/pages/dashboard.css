@@ -75,12 +75,12 @@
 }
 
 .connection-connected .connection-dot,
-.session-monitoring .connection-dot {
+.session-active .connection-dot {
   background: var(--ok);
 }
 
 .connection-connected,
-.session-monitoring {
+.session-active {
   color: var(--ok);
   border-color: rgba(92, 201, 138, 0.35);
 }
@@ -103,8 +103,39 @@
   border-color: rgba(226, 169, 58, 0.35);
 }
 
-.session-completed .connection-dot {
+.session-completed .connection-dot,
+.session-cancelled .connection-dot {
   background: var(--text-muted);
+}
+
+.session-cancelled {
+  color: var(--danger);
+  border-color: rgba(226, 105, 74, 0.35);
+}
+
+.session-timer {
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.session-loading,
+.session-error {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+}
+
+.session-loading {
+  color: var(--text-secondary);
+  background: var(--surface-raised);
+}
+
+.session-error {
+  color: var(--danger);
+  background: rgba(226, 105, 74, 0.08);
+  border-color: rgba(226, 105, 74, 0.35);
 }
 
 .header-controls {
