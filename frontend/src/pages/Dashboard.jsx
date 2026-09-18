@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Header from "../components/dashboard/Header";
 import CameraPanel from "../components/dashboard/CameraPanel";
 import RiskPanel from "../components/dashboard/RiskPanel";
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const backendStatus = useBackendStatus();
   const { session, loading, error, busy, elapsedSeconds, start, pause, resume, end } =
     useInterviewSession();
+  const [faceResult, setFaceResult] = useState(null);
 
   const elapsedLabel = formatDuration(elapsedSeconds);
 
@@ -35,11 +37,11 @@ export default function Dashboard() {
         {loading && !session && <div className="session-loading">Preparing interview session…</div>}
 
         <div className="dashboard-row dashboard-row-top">
-          <CameraPanel />
+          <CameraPanel hasSession={Boolean(session)} onFaceStatusChange={setFaceResult} />
           <RiskPanel />
         </div>
 
-        <MonitoringStatus />
+        <MonitoringStatus faceResult={faceResult} />
 
         <div className="dashboard-row dashboard-row-mid">
           <AlertsPanel />

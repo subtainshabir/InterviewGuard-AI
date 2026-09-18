@@ -316,6 +316,49 @@
   right: 14px;
 }
 
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #000;
+  transform: scaleX(-1);
+}
+
+.camera-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.face-overlay {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.face-box {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.face-box-label {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  transform: scaleX(-1);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(14, 20, 23, 0.75);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* Risk panel */
 
 .risk-card {
