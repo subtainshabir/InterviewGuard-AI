@@ -14,7 +14,10 @@ let modelLoadPromise = null;
 
 function loadModel() {
   if (!modelLoadPromise) {
-    modelLoadPromise = faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL).catch((err) => {
+    modelLoadPromise = Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+    ]).catch((err) => {
       modelLoadPromise = null;
       throw err;
     });
@@ -23,16 +26,25 @@ function loadModel() {
 }
 
 function buildResult(detections) {
-  const faces = detections.map((detection, index) => ({
-    id: `face-${index}`,
-    boundingBox: {
-      x: detection.box.x,
-      y: detection.box.y,
-      width: detection.box.width,
-      height: detection.box.height,
-    },
-    confidence: detection.score,
-  }));
+  const faces = detections.map((detection, index) => {
+    const box = detection.detection.box;
+    const points = detection.landmarks?.positions?.map((point) => ({ x: point.x, y: point.y })) ?? [];
+
+    return {
+      id: `face-${index}`,
+      boundingBox: {
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      },
+      confidence: detection.detection.score,
+      landmarks: {
+        points,
+        available: points.length > 0,
+      },
+    };
+  });
 
   let status = "no_face";
   if (faces.length === 1) status = "face_detected";
@@ -65,7 +77,9 @@ export function useFaceDetection(videoRef, active) {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
     try {
-      const detections = await faceapi.detectAllFaces(video, DETECTOR_OPTIONS);
+      const detections = await faceapi
+        .detectAllFaces(video, DETECTOR_OPTIONS)
+        .withFaceLandmarks();
       setResult(buildResult(detections));
     } catch {
       // Ignore transient per-frame detection errors; the loop continues.

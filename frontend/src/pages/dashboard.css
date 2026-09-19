@@ -359,6 +359,16 @@
   white-space: nowrap;
 }
 
+.face-landmark-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
 /* Risk panel */
 
 .risk-card {

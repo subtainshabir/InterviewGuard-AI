@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { VideoOff, ShieldAlert } from "lucide-react";
 import { useCamera } from "../../services/useCamera";
 import { useFaceDetection } from "../../services/useFaceDetection";
+import { useFaceTracking } from "../../services/useFaceTracking";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -36,10 +37,11 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const isErrorState = ERROR_STATES.has(status);
 
   const { modelStatus, result } = useFaceDetection(videoRef, isActive);
+  const tracking = useFaceTracking(result, isActive);
 
   useEffect(() => {
-    onFaceStatusChange?.(result);
-  }, [result, onFaceStatusChange]);
+    onFaceStatusChange?.(tracking);
+  }, [tracking, onFaceStatusChange]);
 
   function handleToggle() {
     if (isActive) stop();
@@ -50,7 +52,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (!isActive) return null;
     if (modelStatus === "loading") return "● Loading face detector…";
     if (modelStatus === "error") return "● Face detector unavailable";
-    return `● ${FACE_LABEL[result.status]} · Faces Detected: ${result.count}`;
+    return `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
   }
 
   return (
@@ -66,7 +68,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         {isActive && stream ? (
           <>
             <CameraVideo stream={stream} ref={videoRef} />
-            <FaceOverlay videoRef={videoRef} faces={result.faces} />
+            <FaceOverlay videoRef={videoRef} faces={tracking.faces} />
           </>
         ) : (
           <>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 export default function FaceOverlay({ videoRef, faces }) {
   const containerRef = useRef(null);
@@ -38,18 +38,29 @@ export default function FaceOverlay({ videoRef, faces }) {
         faces.map((face) => {
           const { x, y, width, height } = face.boundingBox;
           return (
-            <div
-              key={face.id}
-              className="face-box"
-              style={{
-                left: `${x * scale + offsetX}px`,
-                top: `${y * scale + offsetY}px`,
-                width: `${width * scale}px`,
-                height: `${height * scale}px`,
-              }}
-            >
-              <span className="face-box-label">{Math.round(face.confidence * 100)}%</span>
-            </div>
+            <Fragment key={face.id}>
+              <div
+                className="face-box"
+                style={{
+                  left: `${x * scale + offsetX}px`,
+                  top: `${y * scale + offsetY}px`,
+                  width: `${width * scale}px`,
+                  height: `${height * scale}px`,
+                }}
+              >
+                <span className="face-box-label">{Math.round(face.confidence * 100)}%</span>
+              </div>
+              {face.landmarks?.points.map((point, index) => (
+                <span
+                  key={index}
+                  className="face-landmark-dot"
+                  style={{
+                    left: `${point.x * scale + offsetX}px`,
+                    top: `${point.y * scale + offsetY}px`,
+                  }}
+                />
+              ))}
+            </Fragment>
           );
         })}
     </div>
