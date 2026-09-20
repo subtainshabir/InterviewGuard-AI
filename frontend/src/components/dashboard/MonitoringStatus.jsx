@@ -7,11 +7,33 @@ const FACE_STATE = {
   multiple_faces: { state: "waiting", description: "Multiple faces detected" },
 };
 
+const HEAD_POSE_DESCRIPTION = {
+  Center: "Head centered",
+  Left: "Head turned left",
+  Right: "Head turned right",
+  Up: "Head tilted up",
+  Down: "Head tilted down",
+};
+
 export default function MonitoringStatus({ faceResult }) {
+  const primaryFace = faceResult?.faces?.[0];
+  const headPose = primaryFace?.headPose;
+
   const cards = mockStatusCards.map((card) => {
-    if (card.key !== "face" || !faceResult || !faceResult.timestamp) return card;
-    const override = FACE_STATE[faceResult.status] ?? FACE_STATE.no_face;
-    return { ...card, ...override };
+    if (card.key === "face") {
+      if (!faceResult || !faceResult.timestamp) return card;
+      const override = FACE_STATE[faceResult.status] ?? FACE_STATE.no_face;
+      return { ...card, ...override };
+    }
+
+    if (card.key === "headPose") {
+      if (!headPose || !headPose.available) return card;
+      const state = headPose.direction === "Center" ? "ready" : "waiting";
+      const description = HEAD_POSE_DESCRIPTION[headPose.direction] ?? card.description;
+      return { ...card, state, description };
+    }
+
+    return card;
   });
 
   return (

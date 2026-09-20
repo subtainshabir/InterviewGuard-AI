@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const SMOOTHING_ALPHA = 0.35;
+export const SMOOTHING_ALPHA = 0.35;
 const GRACE_PERIOD_FRAMES = 3;
 const MATCH_DISTANCE_FACTOR = 0.75;
 const STILL_MOVEMENT_FACTOR = 0.03;

@@ -3,6 +3,7 @@ import { VideoOff, ShieldAlert } from "lucide-react";
 import { useCamera } from "../../services/useCamera";
 import { useFaceDetection } from "../../services/useFaceDetection";
 import { useFaceTracking } from "../../services/useFaceTracking";
+import { useHeadPose } from "../../services/useHeadPose";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -38,10 +39,11 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
 
   const { modelStatus, result } = useFaceDetection(videoRef, isActive);
   const tracking = useFaceTracking(result, isActive);
+  const headPose = useHeadPose(tracking, isActive);
 
   useEffect(() => {
-    onFaceStatusChange?.(tracking);
-  }, [tracking, onFaceStatusChange]);
+    onFaceStatusChange?.({ ...tracking, faces: headPose.faces });
+  }, [tracking, headPose, onFaceStatusChange]);
 
   function handleToggle() {
     if (isActive) stop();
@@ -52,7 +54,9 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (!isActive) return null;
     if (modelStatus === "loading") return "● Loading face detector…";
     if (modelStatus === "error") return "● Face detector unavailable";
-    return `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
+    const base = `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
+    const primaryPose = headPose.faces[0]?.headPose;
+    return primaryPose?.available ? `${base} · Head: ${primaryPose.direction}` : base;
   }
 
   return (
@@ -68,7 +72,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         {isActive && stream ? (
           <>
             <CameraVideo stream={stream} ref={videoRef} />
-            <FaceOverlay videoRef={videoRef} faces={tracking.faces} />
+            <FaceOverlay videoRef={videoRef} faces={headPose.faces} />
           </>
         ) : (
           <>
