@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { VideoOff, ShieldAlert } from "lucide-react";
 import { useCamera } from "../../services/useCamera";
 import { useFaceDetection } from "../../services/useFaceDetection";
 import { useFaceTracking } from "../../services/useFaceTracking";
 import { useHeadPose } from "../../services/useHeadPose";
+import { useEyeTracking } from "../../services/useEyeTracking";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -40,10 +41,22 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const { modelStatus, result } = useFaceDetection(videoRef, isActive);
   const tracking = useFaceTracking(result, isActive);
   const headPose = useHeadPose(tracking, isActive);
+  const eyeTracking = useEyeTracking(videoRef, tracking, isActive);
+
+  // Both hooks map over the same tracking.faces array (same ids, same order),
+  // so they combine by index into one enriched face list.
+  const faces = useMemo(
+    () =>
+      headPose.faces.map((face, index) => ({
+        ...face,
+        eyes: eyeTracking.faces[index]?.eyes,
+      })),
+    [headPose.faces, eyeTracking.faces]
+  );
 
   useEffect(() => {
-    onFaceStatusChange?.({ ...tracking, faces: headPose.faces });
-  }, [tracking, headPose, onFaceStatusChange]);
+    onFaceStatusChange?.({ ...tracking, faces });
+  }, [tracking, faces, onFaceStatusChange]);
 
   function handleToggle() {
     if (isActive) stop();
@@ -55,7 +68,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (modelStatus === "loading") return "● Loading face detector…";
     if (modelStatus === "error") return "● Face detector unavailable";
     const base = `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
-    const primaryPose = headPose.faces[0]?.headPose;
+    const primaryPose = faces[0]?.headPose;
     return primaryPose?.available ? `${base} · Head: ${primaryPose.direction}` : base;
   }
 
@@ -72,7 +85,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         {isActive && stream ? (
           <>
             <CameraVideo stream={stream} ref={videoRef} />
-            <FaceOverlay videoRef={videoRef} faces={headPose.faces} />
+            <FaceOverlay videoRef={videoRef} faces={faces} />
           </>
         ) : (
           <>
