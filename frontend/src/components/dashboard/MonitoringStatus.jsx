@@ -15,9 +15,18 @@ const HEAD_POSE_DESCRIPTION = {
   Down: "Head tilted down",
 };
 
+const GAZE_DESCRIPTION = {
+  Center: "Gaze centered",
+  Left: "Gaze left",
+  Right: "Gaze right",
+  Up: "Gaze up",
+  Down: "Gaze down",
+};
+
 export default function MonitoringStatus({ faceResult }) {
   const primaryFace = faceResult?.faces?.[0];
   const headPose = primaryFace?.headPose;
+  const gaze = primaryFace?.gaze;
 
   const cards = mockStatusCards.map((card) => {
     if (card.key === "face") {
@@ -30,6 +39,13 @@ export default function MonitoringStatus({ faceResult }) {
       if (!headPose || !headPose.available) return card;
       const state = headPose.direction === "Center" ? "ready" : "waiting";
       const description = HEAD_POSE_DESCRIPTION[headPose.direction] ?? card.description;
+      return { ...card, state, description };
+    }
+
+    if (card.key === "gaze") {
+      if (!gaze || !gaze.available) return card;
+      const state = gaze.direction === "Center" ? "ready" : "waiting";
+      const description = GAZE_DESCRIPTION[gaze.direction] ?? card.description;
       return { ...card, state, description };
     }
 

@@ -5,6 +5,7 @@ import { useFaceDetection } from "../../services/useFaceDetection";
 import { useFaceTracking } from "../../services/useFaceTracking";
 import { useHeadPose } from "../../services/useHeadPose";
 import { useEyeTracking } from "../../services/useEyeTracking";
+import { useGazeEstimation } from "../../services/useGazeEstimation";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -43,9 +44,9 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const headPose = useHeadPose(tracking, isActive);
   const eyeTracking = useEyeTracking(videoRef, tracking, isActive);
 
-  // Both hooks map over the same tracking.faces array (same ids, same order),
-  // so they combine by index into one enriched face list.
-  const faces = useMemo(
+  // headPose and eyeTracking both map over the same tracking.faces array
+  // (same ids, same order), so they combine by index into one enriched list.
+  const posedFaces = useMemo(
     () =>
       headPose.faces.map((face, index) => ({
         ...face,
@@ -53,6 +54,9 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       })),
     [headPose.faces, eyeTracking.faces]
   );
+
+  const gaze = useGazeEstimation(posedFaces, tracking.timestamp, isActive);
+  const faces = gaze.faces;
 
   useEffect(() => {
     onFaceStatusChange?.({ ...tracking, faces });
@@ -68,8 +72,12 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (modelStatus === "loading") return "● Loading face detector…";
     if (modelStatus === "error") return "● Face detector unavailable";
     let text = `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
-    const primaryPose = faces[0]?.headPose;
-    if (primaryPose?.available) text += ` · Head: ${primaryPose.direction}`;
+    const primaryFace = faces[0];
+    if (primaryFace?.headPose?.available) text += ` · Head: ${primaryFace.headPose.direction}`;
+    if (primaryFace?.gaze?.available) {
+      text += ` · Gaze: ${primaryFace.gaze.direction}`;
+      if (primaryFace.gaze.isLookingAway) text += " (away)";
+    }
     text += ` · Blinks: ${eyeTracking.events.length}`;
     return text;
   }
