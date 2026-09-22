@@ -60,6 +60,18 @@ export default function FaceOverlay({ videoRef, faces }) {
                   }}
                 />
               ))}
+              {[face.eyes?.left, face.eyes?.right].map((eye, eyeIndex) =>
+                eye?.iris?.available ? (
+                  <span
+                    key={`iris-${eyeIndex}`}
+                    className="face-iris-dot"
+                    style={{
+                      left: `${eye.iris.position.x * scale + offsetX}px`,
+                      top: `${eye.iris.position.y * scale + offsetY}px`,
+                    }}
+                  />
+                ) : null
+              )}
             </Fragment>
           );
         })}

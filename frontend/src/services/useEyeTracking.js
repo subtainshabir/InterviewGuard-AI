@@ -31,6 +31,13 @@ const EYE_CROP_PADDING = 0.35;
 const EMPTY_OUTPUT = { faces: [], events: [] };
 
 let nextEventId = 0;
+const warnedKeys = new Set();
+
+function warnOnce(key, ...args) {
+  if (warnedKeys.has(key)) return;
+  warnedKeys.add(key);
+  console.warn("[useEyeTracking]", ...args);
+}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -74,14 +81,28 @@ function eyeBounds(points, indices) {
 }
 
 function estimateIrisCenter(ctx, video, bounds) {
-  if (!ctx || !video || !video.videoWidth) return null;
+  if (!ctx || !video || !video.videoWidth) {
+    warnOnce(
+      "iris-precondition",
+      `Skipping iris estimation (ctx=${Boolean(ctx)}, video=${Boolean(video)}, ` +
+        `videoWidth=${video?.videoWidth ?? "n/a"}).`
+    );
+    return null;
+  }
 
   const srcX = Math.max(0, Math.floor(bounds.minX));
   const srcY = Math.max(0, Math.floor(bounds.minY));
   const srcW = Math.max(1, Math.ceil(bounds.width));
   const srcH = Math.max(1, Math.ceil(bounds.height));
 
-  if (srcX + srcW > video.videoWidth || srcY + srcH > video.videoHeight) return null;
+  if (srcX + srcW > video.videoWidth || srcY + srcH > video.videoHeight) {
+    warnOnce(
+      "iris-bounds",
+      `Eye crop region (${srcX},${srcY} ${srcW}x${srcH}) exceeds video dimensions ` +
+        `(${video.videoWidth}x${video.videoHeight}); iris position unavailable this cycle.`
+    );
+    return null;
+  }
 
   ctx.canvas.width = srcW;
   ctx.canvas.height = srcH;
@@ -90,7 +111,8 @@ function estimateIrisCenter(ctx, video, bounds) {
   let imageData;
   try {
     imageData = ctx.getImageData(0, 0, srcW, srcH);
-  } catch {
+  } catch (err) {
+    warnOnce("iris-getimagedata", "getImageData failed for eye crop (iris position unavailable):", err);
     return null;
   }
 

@@ -67,9 +67,11 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (!isActive) return null;
     if (modelStatus === "loading") return "● Loading face detector…";
     if (modelStatus === "error") return "● Face detector unavailable";
-    const base = `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
+    let text = `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
     const primaryPose = faces[0]?.headPose;
-    return primaryPose?.available ? `${base} · Head: ${primaryPose.direction}` : base;
+    if (primaryPose?.available) text += ` · Head: ${primaryPose.direction}`;
+    text += ` · Blinks: ${eyeTracking.events.length}`;
+    return text;
   }
 
   return (
