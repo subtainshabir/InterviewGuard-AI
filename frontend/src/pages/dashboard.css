@@ -245,12 +245,15 @@
   border-color: rgba(226, 105, 74, 0.4);
 }
 
-.badge-medium {
+.badge-medium,
+.badge-warn,
+.badge-warning {
   color: var(--warn);
   border-color: rgba(226, 169, 58, 0.4);
 }
 
-.badge-low {
+.badge-low,
+.badge-ready {
   color: var(--ok);
   border-color: rgba(92, 201, 138, 0.4);
 }
@@ -526,6 +529,16 @@
   background: var(--text-muted);
 }
 
+.status-state-critical .status-dot {
+  background: var(--danger);
+  animation: pulse-dot 1.5s infinite;
+}
+
+.status-state-critical {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .status-card-desc {
   font-size: 11px;
   color: var(--text-muted);
@@ -756,4 +769,306 @@
     grid-template-columns: 1fr;
     gap: 4px;
   }
+}
+
+/* Gaze Analytics & Behavior View */
+
+.gaze-analytics-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.gaze-pattern-banner {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.gaze-pattern-banner.gaze-severity-critical {
+  border-color: rgba(226, 105, 74, 0.5);
+  background: rgba(226, 105, 74, 0.08);
+}
+
+.gaze-pattern-banner.gaze-severity-warning {
+  border-color: rgba(226, 169, 58, 0.5);
+  background: rgba(226, 169, 58, 0.08);
+}
+
+.gaze-pattern-banner.gaze-severity-ready {
+  border-color: rgba(92, 201, 138, 0.35);
+  background: rgba(92, 201, 138, 0.05);
+}
+
+.gaze-pattern-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gaze-pattern-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gaze-pattern-name {
+  letter-spacing: 0.01em;
+}
+
+.gaze-pattern-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.gaze-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .gaze-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gaze-metric-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gaze-card-alert {
+  border-color: rgba(226, 105, 74, 0.45);
+  background: rgba(226, 105, 74, 0.04);
+}
+
+.gaze-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.gaze-metric-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.gaze-metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.gaze-stat-large {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.gaze-stat-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gaze-metric-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.gaze-metric-sub strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.gaze-distribution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.gaze-dist-item {
+  display: grid;
+  grid-template-columns: 46px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.gaze-dist-track {
+  height: 5px;
+  background: var(--surface);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gaze-dist-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.gaze-dist-num {
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.gaze-ratio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 4px 0;
+}
+
+.gaze-ratio-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.gaze-ratio-labels strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.gaze-ratio-bar {
+  height: 8px;
+  background: var(--surface);
+  border-radius: 999px;
+  display: flex;
+  overflow: hidden;
+}
+
+.gaze-ratio-center {
+  background: var(--ok);
+  transition: width 0.3s ease;
+}
+
+.gaze-ratio-off {
+  background: var(--warn);
+  transition: width 0.3s ease;
+}
+
+.gaze-repeated-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gaze-repeated-highlight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gaze-repeated-target {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--danger);
+  background: rgba(226, 105, 74, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.gaze-repeated-cycles {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.gaze-repeated-msg {
+  font-size: 11px;
+  color: var(--danger);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.gaze-clean-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+}
+
+.text-ok {
+  color: var(--ok);
+  flex-shrink: 0;
+}
+
+.gaze-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gaze-timeline-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 4px 6px;
+  background: var(--surface);
+  border-radius: 4px;
+  border-left: 2px solid var(--accent);
+}
+
+.gaze-window-time {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.gaze-window-dominant {
+  color: var(--text-secondary);
+}
+
+.gaze-window-dominant strong {
+  color: var(--text-primary);
+}
+
+.gaze-window-stats {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.gaze-timeline-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 4px 0;
+  font-style: italic;
 }

@@ -1,8 +1,9 @@
 import { History } from "lucide-react";
 import { mockEvidenceEvents } from "../../data/mockDashboardData";
 
-export default function EvidenceTimeline() {
-  const hasEvents = mockEvidenceEvents.length > 0;
+export default function EvidenceTimeline({ events }) {
+  const list = events ?? mockEvidenceEvents;
+  const hasEvents = list.length > 0;
 
   return (
     <section className="panel timeline-card">
@@ -12,7 +13,7 @@ export default function EvidenceTimeline() {
 
       {hasEvents ? (
         <ul className="timeline-list">
-          {mockEvidenceEvents.map((event) => (
+          {list.map((event) => (
             <li key={event.id} className="timeline-item">
               <span className="timeline-time">{event.timestamp}</span>
               <div className="timeline-body">

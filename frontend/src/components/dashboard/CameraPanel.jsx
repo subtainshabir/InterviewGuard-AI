@@ -6,6 +6,7 @@ import { useFaceTracking } from "../../services/useFaceTracking";
 import { useHeadPose } from "../../services/useHeadPose";
 import { useEyeTracking } from "../../services/useEyeTracking";
 import { useGazeEstimation } from "../../services/useGazeEstimation";
+import { useGazeBehaviorAnalysis } from "../../services/useGazeBehaviorAnalysis";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -56,11 +57,19 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   );
 
   const gaze = useGazeEstimation(posedFaces, tracking.timestamp, isActive);
-  const faces = gaze.faces;
+  const gazeBehavior = useGazeBehaviorAnalysis(gaze.faces, tracking.timestamp, isActive);
+  const faces = gazeBehavior.faces;
 
   useEffect(() => {
-    onFaceStatusChange?.({ ...tracking, faces });
-  }, [tracking, faces, onFaceStatusChange]);
+    onFaceStatusChange?.({
+      ...tracking,
+      faces,
+      gazeBehavior: gazeBehavior.summary,
+      alerts: gazeBehavior.alerts,
+      evidenceEvents: gazeBehavior.evidenceEvents,
+      risk: gazeBehavior.risk,
+    });
+  }, [tracking, faces, gazeBehavior, onFaceStatusChange]);
 
   function handleToggle() {
     if (isActive) stop();
@@ -77,6 +86,12 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (primaryFace?.gaze?.available) {
       text += ` · Gaze: ${primaryFace.gaze.direction}`;
       if (primaryFace.gaze.isLookingAway) text += " (away)";
+      const b = primaryFace.gaze.behavior;
+      if (b?.repeatedShifts?.detected) {
+        text += ` · ⚠️ Repetitive shifts (${b.repeatedShifts.targetDirection})`;
+      } else if (b?.frequency?.shiftsPerMinute > 0) {
+        text += ` · ${b.frequency.shiftsPerMinute}/min (${b.temporalPattern?.pattern ?? "Normal"})`;
+      }
     }
     text += ` · Blinks: ${eyeTracking.events.length}`;
     return text;

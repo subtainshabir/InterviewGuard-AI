@@ -44,6 +44,28 @@ export default function MonitoringStatus({ faceResult }) {
 
     if (card.key === "gaze") {
       if (!gaze || !gaze.available) return card;
+      const b = gaze.behavior;
+      if (b?.repeatedShifts?.detected) {
+        return {
+          ...card,
+          state: b.repeatedShifts.severity === "critical" ? "critical" : "waiting",
+          description: b.repeatedShifts.message,
+        };
+      }
+      if (gaze.isLookingAway) {
+        return {
+          ...card,
+          state: "waiting",
+          description: `${GAZE_DESCRIPTION[gaze.direction] ?? "Looking away"} (${(gaze.durationMs / 1000).toFixed(1)}s away)`,
+        };
+      }
+      if (b?.frequency?.shiftsPerMinute > 0) {
+        return {
+          ...card,
+          state: "ready",
+          description: `${GAZE_DESCRIPTION[gaze.direction] ?? "Gaze centered"} · ${b.frequency.shiftsPerMinute}/min (${b.temporalPattern?.pattern ?? "Normal"})`,
+        };
+      }
       const state = gaze.direction === "Center" ? "ready" : "waiting";
       const description = GAZE_DESCRIPTION[gaze.direction] ?? card.description;
       return { ...card, state, description };

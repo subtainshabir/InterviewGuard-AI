@@ -3,10 +3,20 @@ import { mockRisk } from "../../data/mockDashboardData";
 const RADIUS = 52;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export default function RiskPanel() {
-  const { score, maxScore, level, note } = mockRisk;
+export default function RiskPanel({ risk }) {
+  const currentRisk = risk ?? mockRisk;
+  const { score, maxScore, level, note } = currentRisk;
   const fraction = Math.min(Math.max(score / maxScore, 0), 1);
   const offset = CIRCUMFERENCE * (1 - fraction);
+
+  const levelColor =
+    score >= 70
+      ? "var(--danger)"
+      : score >= 45
+      ? "var(--warn)"
+      : score >= 20
+      ? "var(--accent)"
+      : "var(--ok)";
 
   return (
     <section className="panel risk-card">
@@ -22,6 +32,7 @@ export default function RiskPanel() {
             cy="60"
             r={RADIUS}
             className="risk-ring-progress"
+            style={{ stroke: levelColor }}
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={offset}
           />
@@ -32,7 +43,9 @@ export default function RiskPanel() {
         </div>
       </div>
 
-      <div className="risk-level">{level}</div>
+      <div className="risk-level" style={{ color: levelColor }}>
+        {level}
+      </div>
       <p className="risk-explanation">{note}</p>
     </section>
   );

@@ -38,17 +38,17 @@ export default function Dashboard() {
 
         <div className="dashboard-row dashboard-row-top">
           <CameraPanel hasSession={Boolean(session)} onFaceStatusChange={setFaceResult} />
-          <RiskPanel />
+          <RiskPanel risk={faceResult?.risk} />
         </div>
 
         <MonitoringStatus faceResult={faceResult} />
 
         <div className="dashboard-row dashboard-row-mid">
-          <AlertsPanel />
-          <DetectionPanel />
+          <AlertsPanel alerts={faceResult?.alerts} />
+          <DetectionPanel gazeBehavior={faceResult?.gazeBehavior} />
         </div>
 
-        <EvidenceTimeline />
+        <EvidenceTimeline events={faceResult?.evidenceEvents} />
 
         <InterviewInfo session={session} elapsedLabel={elapsedLabel} />
       </main>

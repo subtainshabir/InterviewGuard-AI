@@ -1,21 +1,23 @@
 import { useState } from "react";
-import { Boxes, Users } from "lucide-react";
+import { Boxes, Users, Eye } from "lucide-react";
 import { mockDetections } from "../../data/mockDashboardData";
+import GazeBehaviorView from "./GazeBehaviorView";
 
 const TABS = [
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
   { key: "people", label: "People", icon: Users, empty: "Only candidate detected" },
+  { key: "gaze", label: "Gaze Behavior", icon: Eye, empty: "Awaiting gaze activity" },
 ];
 
-export default function DetectionPanel() {
-  const [activeTab, setActiveTab] = useState("objects");
+export default function DetectionPanel({ gazeBehavior }) {
+  const [activeTab, setActiveTab] = useState("gaze");
   const tab = TABS.find((t) => t.key === activeTab);
-  const items = mockDetections[activeTab];
+  const items = mockDetections[activeTab] || [];
 
   return (
-    <section className="panel">
+    <section className="panel detection-panel">
       <div className="panel-header">
-        <h2>Detections</h2>
+        <h2>Intelligence & Detections</h2>
       </div>
 
       <div className="tab-row" role="tablist">
@@ -33,7 +35,9 @@ export default function DetectionPanel() {
         ))}
       </div>
 
-      {items.length > 0 ? (
+      {activeTab === "gaze" ? (
+        <GazeBehaviorView behavior={gazeBehavior} />
+      ) : items.length > 0 ? (
         <ul className="detection-list">
           {items.map((item) => (
             <li key={item.id}>{item.label}</li>

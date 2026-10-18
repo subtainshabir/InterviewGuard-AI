@@ -13,6 +13,7 @@ const STATE_LABEL = {
   ready: "Ready",
   waiting: "Waiting",
   offline: "Offline",
+  critical: "Alert",
 };
 
 export default function StatusCard({ signalKey, label, state, description }) {
