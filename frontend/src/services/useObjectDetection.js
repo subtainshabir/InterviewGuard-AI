@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
+import {
+  DEFAULT_UNAUTHORIZED_RULES,
+  evaluateObjectRule,
+  normalizeObjectClass,
+} from "./unauthorizedObjectRules";
 
 const DETECTION_INTERVAL_MS = 600;
-const MIN_SCORE_THRESHOLD = 0.50;
+const MIN_SCORE_THRESHOLD = 0.40;
 const MAX_ALERTS = 10;
 const MAX_EVIDENCE = 10;
-
-// High-risk prohibited objects in an online interview
-export const PROHIBITED_CLASSES = new Set([
-  "cell phone",
-  "book",
-  "laptop",
-  "remote",
-]);
 
 let modelLoadPromise = null;
 
@@ -49,21 +46,21 @@ const EMPTY_OUTPUT = {
   modelStatus: "loading",
   objects: [],
   summary: EMPTY_SUMMARY,
+  rules: DEFAULT_UNAUTHORIZED_RULES,
   alerts: [],
   evidenceEvents: [],
   risk: { score: 0, maxScore: 100, level: "Low Risk", note: "No prohibited objects detected." },
 };
 
 /**
- * Object Detection Foundation hook:
- * - Loads COCO-SSD lite_mobilenet_v2 object detection model
- * - Runs real-time detection pipeline on camera video stream
- * - Computes normalized/pixel bounding boxes and confidence scores
- * - Classifies objects into Prohibited vs Neutral
- * - Emits security alerts, timeline evidence, and risk escalation
+ * Unauthorized Object Detection service:
+ * - Detects Phones, Tablets, Laptops, Second Monitors, Books/Notes, Headphones, Remotes
+ * - Matches detections against Configurable Unauthorized Object Rules
+ * - Evaluates risk scores, raises security alerts, and logs timeline evidence
  */
-export function useObjectDetection(videoRef, active) {
+export function useObjectDetection(videoRef, active, initialRules = DEFAULT_UNAUTHORIZED_RULES) {
   const [modelStatus, setModelStatus] = useState("loading");
+  const [rules, setRules] = useState(initialRules);
   const [output, setOutput] = useState(EMPTY_OUTPUT);
   const modelRef = useRef(null);
   const intervalRef = useRef(null);
@@ -71,7 +68,7 @@ export function useObjectDetection(videoRef, active) {
   const evidenceRef = useRef([]);
   const lastAlertedObjectsRef = useRef(new Map());
 
-  // 1. Model Loading
+  // Load COCO-SSD Model
   useEffect(() => {
     let cancelled = false;
     loadCocoModel()
@@ -82,7 +79,7 @@ export function useObjectDetection(videoRef, active) {
         }
       })
       .catch((err) => {
-        console.error("[useObjectDetection] Failed to load COCO-SSD model:", err);
+        console.error("[useObjectDetection] Model load failed:", err);
         if (!cancelled) {
           setModelStatus("error");
         }
@@ -93,27 +90,42 @@ export function useObjectDetection(videoRef, active) {
     };
   }, []);
 
-  // 2. Real-time Detection Pipeline
+  // Real-time Detection Loop
   const runDetection = useCallback(async () => {
     const video = videoRef.current;
     const model = modelRef.current;
     if (!video || video.readyState < 2 || !model) return;
 
     try {
-      // Filter out person class since person tracking is handled by dedicated face/person pipeline
-      const rawDetections = await model.detect(video, 10, MIN_SCORE_THRESHOLD);
+      const rawDetections = await model.detect(video, 12, MIN_SCORE_THRESHOLD);
       const timestamp = Date.now();
 
+      // Filter and map detected objects against configured policy rules
       const objects = rawDetections
-        .filter((d) => d.class !== "person")
+        .filter((d) => d.class !== "person") // Person detection is handled by dedicated person pipeline
         .map((d, index) => {
           const [x, y, width, height] = d.bbox;
-          const isProhibited = PROHIBITED_CLASSES.has(d.class.toLowerCase());
+          let rawClass = d.class.toLowerCase();
+
+          // Tablet vs Phone Heuristic: larger aspect ratio/dimensions
+          if (rawClass === "cell phone" && width > 130 && height > 160) {
+            rawClass = "tablet";
+          }
+
+          const ruleEvaluation = evaluateObjectRule(rawClass, d.score, rules);
+          const isProhibited = ruleEvaluation.matched;
+          const label = ruleEvaluation.displayName || normalizeObjectClass(d.class);
+
           return {
-            id: `obj-${index}-${d.class}`,
-            label: d.class,
+            id: `obj-${index}-${rawClass}`,
+            rawClass,
+            label,
+            ruleId: ruleEvaluation.ruleId,
+            ruleName: ruleEvaluation.ruleName,
             category: isProhibited ? "prohibited" : "neutral",
             isProhibited,
+            severity: ruleEvaluation.severity,
+            riskPenalty: ruleEvaluation.riskPenalty,
             confidence: d.score,
             confidencePercent: Math.round(d.score * 100),
             boundingBox: { x, y, width, height },
@@ -130,18 +142,18 @@ export function useObjectDetection(videoRef, active) {
       const prohibitedCount = prohibitedObjects.length;
       const hasProhibited = prohibitedCount > 0;
 
-      // 3. Prohibited Object Alerting & Evidence Generation
+      // Raise alerts for prohibited items
       prohibitedObjects.forEach((obj) => {
         const lastAlerted = lastAlertedObjectsRef.current.get(obj.label) || 0;
-        // Throttle alert to once per 8 seconds per object type
-        if (timestamp - lastAlerted > 8000) {
+        // Throttle to once every 7s per distinct object category
+        if (timestamp - lastAlerted > 7000) {
           lastAlertedObjectsRef.current.set(obj.label, timestamp);
 
           const newAlert = {
             id: `alert-obj-${nextAlertId++}`,
             timestamp: formatTime(timestamp),
-            type: "Prohibited Object Detected",
-            severity: "critical",
+            type: "Unauthorized Object Detected",
+            severity: obj.severity === "critical" ? "critical" : "warning",
             description: `${obj.label} detected in camera feed (${obj.confidencePercent}% confidence)`,
           };
           currentAlerts = [newAlert, ...currentAlerts].slice(0, MAX_ALERTS);
@@ -150,11 +162,11 @@ export function useObjectDetection(videoRef, active) {
           const newEvidence = {
             id: `ev-obj-${nextEvidenceId++}`,
             timestamp: formatTime(timestamp),
-            type: "Prohibited Object",
-            source: "Object Detector",
+            type: "Unauthorized Object",
+            source: "Object Rules Engine",
             confidence: obj.confidencePercent,
-            duration: "Detected in frame",
-            severity: "critical",
+            duration: "Visible in camera",
+            severity: obj.severity === "critical" ? "critical" : "medium",
           };
           currentEvidence = [newEvidence, ...currentEvidence].slice(0, MAX_EVIDENCE);
           evidenceChanged = true;
@@ -164,7 +176,7 @@ export function useObjectDetection(videoRef, active) {
       if (alertsChanged) alertsRef.current = currentAlerts;
       if (evidenceChanged) evidenceRef.current = currentEvidence;
 
-      // Group objects by label for summary
+      // Group detected objects by label
       const grouped = {};
       objects.forEach((obj) => {
         if (!grouped[obj.label]) {
@@ -173,6 +185,7 @@ export function useObjectDetection(videoRef, active) {
             label: obj.label,
             category: obj.category,
             isProhibited: obj.isProhibited,
+            severity: obj.severity,
             confidencePercent: obj.confidencePercent,
             count: 0,
           };
@@ -186,11 +199,12 @@ export function useObjectDetection(videoRef, active) {
 
       const objectsList = Object.values(grouped);
 
-      const riskScore = hasProhibited ? Math.min(100, 35 * prohibitedCount) : 0;
+      const totalRisk = prohibitedObjects.reduce((acc, o) => acc + (o.riskPenalty || 35), 0);
+      const riskScore = Math.min(100, totalRisk);
       const riskLevel = riskScore >= 70 ? "High Risk" : riskScore >= 35 ? "Elevated Risk" : "Low Risk";
       const note = hasProhibited
-        ? `ALERT: Prohibited object (${prohibitedObjects.map((p) => p.label).join(", ")}) detected in view.`
-        : "No prohibited objects detected.";
+        ? `ALERT: Unauthorized item (${prohibitedObjects.map((p) => p.label).join(", ")}) detected.`
+        : "No unauthorized objects detected.";
 
       setOutput({
         modelStatus: "ready",
@@ -202,6 +216,7 @@ export function useObjectDetection(videoRef, active) {
           objectsList,
           timestamp,
         },
+        rules,
         alerts: alertsRef.current,
         evidenceEvents: evidenceRef.current,
         risk: {
@@ -212,11 +227,11 @@ export function useObjectDetection(videoRef, active) {
         },
       });
     } catch {
-      // Ignore transient per-frame inference errors
+      // Ignore transient frame errors
     }
-  }, [videoRef]);
+  }, [videoRef, rules]);
 
-  // Loop execution
+  // Interval execution
   useEffect(() => {
     if (!active || modelStatus !== "ready") {
       if (intervalRef.current) {
@@ -236,5 +251,16 @@ export function useObjectDetection(videoRef, active) {
     };
   }, [active, modelStatus, runDetection]);
 
-  return output;
+  const toggleRule = useCallback((ruleId) => {
+    setRules((prev) =>
+      prev.map((r) => (r.id === ruleId ? { ...r, enabled: !r.enabled } : r))
+    );
+  }, []);
+
+  return {
+    ...output,
+    rules,
+    toggleRule,
+    setRules,
+  };
 }

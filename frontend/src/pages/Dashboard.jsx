@@ -50,6 +50,8 @@ export default function Dashboard() {
             personSummary={faceResult?.personSummary}
             objectSummary={faceResult?.objectSummary}
             objectModelStatus={faceResult?.objectModelStatus}
+            objectRules={faceResult?.objectRules}
+            onToggleObjectRule={faceResult?.onToggleObjectRule}
           />
         </div>
 

@@ -15,6 +15,8 @@ export default function DetectionPanel({
   personSummary,
   objectSummary,
   objectModelStatus,
+  objectRules,
+  onToggleObjectRule,
 }) {
   const [activeTab, setActiveTab] = useState("people");
   const tab = TABS.find((t) => t.key === activeTab);
@@ -60,6 +62,8 @@ export default function DetectionPanel({
         <ObjectDetectionView
           objectSummary={objectSummary}
           modelStatus={objectModelStatus}
+          rules={objectRules}
+          onToggleRule={onToggleObjectRule}
         />
       )}
     </section>
