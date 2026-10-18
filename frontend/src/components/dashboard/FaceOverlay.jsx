@@ -93,14 +93,21 @@ export default function FaceOverlay({ videoRef, faces, objects = [] }) {
           {objects.map((obj) => {
             const { x, y, width, height } = obj.boundingBox;
             const isProhibited = obj.isProhibited;
-            const label = `${obj.label} (${obj.confidencePercent}%)`;
+            const persistenceTag =
+              obj.persistence === "highly_persistent"
+                ? " [STATIONARY]"
+                : obj.isPersistent
+                ? " [PERSISTENT]"
+                : "";
+            const durationTag = obj.durationFormatted ? ` · ${obj.durationFormatted}` : "";
+            const label = `${isProhibited ? "⚠️ " : ""}${obj.label} (${obj.confidencePercent}%)${durationTag}${persistenceTag}`;
 
             return (
               <div
                 key={obj.id}
                 className={`object-box ${
                   isProhibited ? "object-box-prohibited" : "object-box-neutral"
-                }`}
+                } ${obj.isPersistent ? "object-box-persistent" : ""}`}
                 style={{
                   left: `${x * scale + offsetX}px`,
                   top: `${y * scale + offsetY}px`,
@@ -111,9 +118,9 @@ export default function FaceOverlay({ videoRef, faces, objects = [] }) {
                 <span
                   className={`object-box-label ${
                     isProhibited ? "object-label-prohibited" : "object-label-neutral"
-                  }`}
+                  } ${obj.isPersistent ? "object-label-persistent" : ""}`}
                 >
-                  {isProhibited ? `⚠️ ${label}` : label}
+                  {label}
                 </span>
               </div>
             );
