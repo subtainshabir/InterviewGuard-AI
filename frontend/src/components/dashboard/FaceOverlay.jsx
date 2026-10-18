@@ -37,10 +37,17 @@ export default function FaceOverlay({ videoRef, faces }) {
       {videoWidth > 0 &&
         faces.map((face) => {
           const { x, y, width, height } = face.boundingBox;
+          const isCandidate = face.personInfo?.isCandidate ?? true;
+          const label = face.personInfo
+            ? isCandidate
+              ? `Candidate (${Math.round(face.confidence * 100)}%)`
+              : `⚠️ ${face.personInfo.label} (${Math.round(face.confidence * 100)}%)`
+            : `${Math.round(face.confidence * 100)}%`;
+
           return (
             <Fragment key={face.id}>
               <div
-                className="face-box"
+                className={`face-box ${!isCandidate ? "face-box-unauthorized" : ""}`}
                 style={{
                   left: `${x * scale + offsetX}px`,
                   top: `${y * scale + offsetY}px`,
@@ -48,7 +55,9 @@ export default function FaceOverlay({ videoRef, faces }) {
                   height: `${height * scale}px`,
                 }}
               >
-                <span className="face-box-label">{Math.round(face.confidence * 100)}%</span>
+                <span className={`face-box-label ${!isCandidate ? "face-box-label-unauthorized" : ""}`}>
+                  {label}
+                </span>
               </div>
               {face.landmarks?.points.map((point, index) => (
                 <span

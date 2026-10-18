@@ -31,6 +31,31 @@ export default function MonitoringStatus({ faceResult }) {
   const cards = mockStatusCards.map((card) => {
     if (card.key === "face") {
       if (!faceResult || !faceResult.timestamp) return card;
+      const personSummary = faceResult.personSummary;
+      if (personSummary) {
+        if (personSummary.isMultiplePeople) {
+          return {
+            ...card,
+            state: "critical",
+            description: `CRITICAL: ${personSummary.count} people in frame`,
+          };
+        }
+        if (personSummary.isCandidateAbsent) {
+          return {
+            ...card,
+            state: "waiting",
+            description: "Candidate absent from frame",
+          };
+        }
+        if (personSummary.count === 1) {
+          const durSec = Math.round(personSummary.candidatePresenceMs / 1000);
+          return {
+            ...card,
+            state: "ready",
+            description: `Single candidate verified (${durSec}s in frame)`,
+          };
+        }
+      }
       const override = FACE_STATE[faceResult.status] ?? FACE_STATE.no_face;
       return { ...card, ...override };
     }

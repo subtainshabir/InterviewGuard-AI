@@ -7,6 +7,7 @@ import { useHeadPose } from "../../services/useHeadPose";
 import { useEyeTracking } from "../../services/useEyeTracking";
 import { useGazeEstimation } from "../../services/useGazeEstimation";
 import { useGazeBehaviorAnalysis } from "../../services/useGazeBehaviorAnalysis";
+import { usePersonTracking } from "../../services/usePersonTracking";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -58,18 +59,60 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
 
   const gaze = useGazeEstimation(posedFaces, tracking.timestamp, isActive);
   const gazeBehavior = useGazeBehaviorAnalysis(gaze.faces, tracking.timestamp, isActive);
-  const faces = gazeBehavior.faces;
+  const personTracking = usePersonTracking(gazeBehavior.faces, tracking.timestamp, isActive);
+  const faces = personTracking.faces;
+
+  const compositeAlerts = useMemo(
+    () => [...personTracking.alerts, ...gazeBehavior.alerts].slice(0, 10),
+    [personTracking.alerts, gazeBehavior.alerts]
+  );
+
+  const compositeEvidence = useMemo(
+    () => [...personTracking.evidenceEvents, ...gazeBehavior.evidenceEvents].slice(0, 10),
+    [personTracking.evidenceEvents, gazeBehavior.evidenceEvents]
+  );
+
+  const compositeRisk = useMemo(() => {
+    const rawScore = Math.min(100, gazeBehavior.risk.score + personTracking.risk.score);
+    let level = "Low Risk";
+    if (rawScore >= 70 || personTracking.summary.isMultiplePeople) level = "High Risk";
+    else if (rawScore >= 45) level = "Elevated Risk";
+    else if (rawScore >= 20) level = "Moderate Risk";
+
+    const note = personTracking.summary.isMultiplePeople
+      ? personTracking.risk.note
+      : personTracking.summary.isCandidateAbsent
+      ? personTracking.risk.note
+      : gazeBehavior.risk.note;
+
+    return {
+      score: rawScore,
+      maxScore: 100,
+      level,
+      note,
+    };
+  }, [gazeBehavior.risk, personTracking.risk, personTracking.summary]);
 
   useEffect(() => {
     onFaceStatusChange?.({
       ...tracking,
       faces,
       gazeBehavior: gazeBehavior.summary,
-      alerts: gazeBehavior.alerts,
-      evidenceEvents: gazeBehavior.evidenceEvents,
-      risk: gazeBehavior.risk,
+      personSummary: personTracking.summary,
+      alerts: compositeAlerts,
+      evidenceEvents: compositeEvidence,
+      risk: compositeRisk,
     });
-  }, [tracking, faces, gazeBehavior, onFaceStatusChange]);
+  }, [
+    tracking,
+    faces,
+    gazeBehavior.summary,
+    personTracking.summary,
+    compositeAlerts,
+    compositeEvidence,
+    compositeRisk,
+    onFaceStatusChange,
+  ]);
 
   function handleToggle() {
     if (isActive) stop();
@@ -80,7 +123,16 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (!isActive) return null;
     if (modelStatus === "loading") return "● Loading face detector…";
     if (modelStatus === "error") return "● Face detector unavailable";
-    let text = `● ${FACE_LABEL[tracking.status]} · Faces Detected: ${tracking.count}`;
+
+    let text = "";
+    if (personTracking.summary.count === 0) {
+      text = "● No Candidate in Frame";
+    } else if (personTracking.summary.count === 1) {
+      text = "● Candidate Present (1)";
+    } else {
+      text = `● ⚠️ Multiple People (${personTracking.summary.count})`;
+    }
+
     const primaryFace = faces[0];
     if (primaryFace?.headPose?.available) text += ` · Head: ${primaryFace.headPose.direction}`;
     if (primaryFace?.gaze?.available) {
@@ -88,10 +140,13 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       if (primaryFace.gaze.isLookingAway) text += " (away)";
       const b = primaryFace.gaze.behavior;
       if (b?.repeatedShifts?.detected) {
-        text += ` · ⚠️ Repetitive shifts (${b.repeatedShifts.targetDirection})`;
+        text += ` · ⚠️ Oscillation (${b.repeatedShifts.targetDirection})`;
       } else if (b?.frequency?.shiftsPerMinute > 0) {
         text += ` · ${b.frequency.shiftsPerMinute}/min (${b.temporalPattern?.pattern ?? "Normal"})`;
       }
+    }
+    if (personTracking.summary.isMultiplePeople) {
+      text += ` · Unauthorized Person Active`;
     }
     text += ` · Blinks: ${eyeTracking.events.length}`;
     return text;

@@ -45,7 +45,10 @@ export default function Dashboard() {
 
         <div className="dashboard-row dashboard-row-mid">
           <AlertsPanel alerts={faceResult?.alerts} />
-          <DetectionPanel gazeBehavior={faceResult?.gazeBehavior} />
+          <DetectionPanel
+            gazeBehavior={faceResult?.gazeBehavior}
+            personSummary={faceResult?.personSummary}
+          />
         </div>
 
         <EvidenceTimeline events={faceResult?.evidenceEvents} />
