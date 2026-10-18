@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Boxes, Users, Eye } from "lucide-react";
-import { mockDetections } from "../../data/mockDashboardData";
 import GazeBehaviorView from "./GazeBehaviorView";
 import PeopleDetectionView from "./PeopleDetectionView";
+import ObjectDetectionView from "./ObjectDetectionView";
 
 const TABS = [
   { key: "people", label: "People", icon: Users, empty: "Awaiting camera feed" },
@@ -10,20 +10,31 @@ const TABS = [
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
 ];
 
-export default function DetectionPanel({ gazeBehavior, personSummary }) {
+export default function DetectionPanel({
+  gazeBehavior,
+  personSummary,
+  objectSummary,
+  objectModelStatus,
+}) {
   const [activeTab, setActiveTab] = useState("people");
   const tab = TABS.find((t) => t.key === activeTab);
-  const items = mockDetections[activeTab] || [];
 
   return (
     <section className="panel detection-panel">
       <div className="panel-header">
         <h2>Intelligence & Detections</h2>
-        {personSummary && personSummary.isMultiplePeople && (
-          <span className="badge badge-critical animate-pulse">
-            ⚠️ {personSummary.count} People
-          </span>
-        )}
+        <div className="panel-header-badges">
+          {personSummary && personSummary.isMultiplePeople && (
+            <span className="badge badge-critical animate-pulse">
+              ⚠️ {personSummary.count} People
+            </span>
+          )}
+          {objectSummary && objectSummary.hasProhibited && (
+            <span className="badge badge-critical animate-pulse">
+              ⚠️ Prohibited Object
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="tab-row" role="tablist">
@@ -45,17 +56,11 @@ export default function DetectionPanel({ gazeBehavior, personSummary }) {
         <PeopleDetectionView personSummary={personSummary} />
       ) : activeTab === "gaze" ? (
         <GazeBehaviorView behavior={gazeBehavior} />
-      ) : items.length > 0 ? (
-        <ul className="detection-list">
-          {items.map((item) => (
-            <li key={item.id}>{item.label}</li>
-          ))}
-        </ul>
       ) : (
-        <div className="empty-state">
-          <tab.icon size={22} strokeWidth={1.5} />
-          <p className="empty-title">{tab.empty}</p>
-        </div>
+        <ObjectDetectionView
+          objectSummary={objectSummary}
+          modelStatus={objectModelStatus}
+        />
       )}
     </section>
   );

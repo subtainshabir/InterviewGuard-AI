@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 
-export default function FaceOverlay({ videoRef, faces }) {
+export default function FaceOverlay({ videoRef, faces, objects = [] }) {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -34,20 +34,73 @@ export default function FaceOverlay({ videoRef, faces }) {
 
   return (
     <div ref={containerRef} className="face-overlay" aria-hidden="true">
-      {videoWidth > 0 &&
-        faces.map((face) => {
-          const { x, y, width, height } = face.boundingBox;
-          const isCandidate = face.personInfo?.isCandidate ?? true;
-          const label = face.personInfo
-            ? isCandidate
-              ? `Candidate (${Math.round(face.confidence * 100)}%)`
-              : `⚠️ ${face.personInfo.label} (${Math.round(face.confidence * 100)}%)`
-            : `${Math.round(face.confidence * 100)}%`;
+      {videoWidth > 0 && (
+        <>
+          {faces.map((face) => {
+            const { x, y, width, height } = face.boundingBox;
+            const isCandidate = face.personInfo?.isCandidate ?? true;
+            const label = face.personInfo
+              ? isCandidate
+                ? `Candidate (${Math.round(face.confidence * 100)}%)`
+                : `⚠️ ${face.personInfo.label} (${Math.round(face.confidence * 100)}%)`
+              : `${Math.round(face.confidence * 100)}%`;
 
-          return (
-            <Fragment key={face.id}>
+            return (
+              <Fragment key={face.id}>
+                <div
+                  className={`face-box ${!isCandidate ? "face-box-unauthorized" : ""}`}
+                  style={{
+                    left: `${x * scale + offsetX}px`,
+                    top: `${y * scale + offsetY}px`,
+                    width: `${width * scale}px`,
+                    height: `${height * scale}px`,
+                  }}
+                >
+                  <span
+                    className={`face-box-label ${
+                      !isCandidate ? "face-box-label-unauthorized" : ""
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {face.landmarks?.points.map((point, index) => (
+                  <span
+                    key={index}
+                    className="face-landmark-dot"
+                    style={{
+                      left: `${point.x * scale + offsetX}px`,
+                      top: `${point.y * scale + offsetY}px`,
+                    }}
+                  />
+                ))}
+                {[face.eyes?.left, face.eyes?.right].map((eye, eyeIndex) =>
+                  eye?.iris?.available ? (
+                    <span
+                      key={`iris-${eyeIndex}`}
+                      className="face-iris-dot"
+                      style={{
+                        left: `${eye.iris.position.x * scale + offsetX}px`,
+                        top: `${eye.iris.position.y * scale + offsetY}px`,
+                      }}
+                    />
+                  ) : null
+                )}
+              </Fragment>
+            );
+          })}
+
+          {objects.map((obj) => {
+            const { x, y, width, height } = obj.boundingBox;
+            const isProhibited = obj.isProhibited;
+            const label = `${obj.label} (${obj.confidencePercent}%)`;
+
+            return (
               <div
-                className={`face-box ${!isCandidate ? "face-box-unauthorized" : ""}`}
+                key={obj.id}
+                className={`object-box ${
+                  isProhibited ? "object-box-prohibited" : "object-box-neutral"
+                }`}
                 style={{
                   left: `${x * scale + offsetX}px`,
                   top: `${y * scale + offsetY}px`,
@@ -55,35 +108,18 @@ export default function FaceOverlay({ videoRef, faces }) {
                   height: `${height * scale}px`,
                 }}
               >
-                <span className={`face-box-label ${!isCandidate ? "face-box-label-unauthorized" : ""}`}>
-                  {label}
+                <span
+                  className={`object-box-label ${
+                    isProhibited ? "object-label-prohibited" : "object-label-neutral"
+                  }`}
+                >
+                  {isProhibited ? `⚠️ ${label}` : label}
                 </span>
               </div>
-              {face.landmarks?.points.map((point, index) => (
-                <span
-                  key={index}
-                  className="face-landmark-dot"
-                  style={{
-                    left: `${point.x * scale + offsetX}px`,
-                    top: `${point.y * scale + offsetY}px`,
-                  }}
-                />
-              ))}
-              {[face.eyes?.left, face.eyes?.right].map((eye, eyeIndex) =>
-                eye?.iris?.available ? (
-                  <span
-                    key={`iris-${eyeIndex}`}
-                    className="face-iris-dot"
-                    style={{
-                      left: `${eye.iris.position.x * scale + offsetX}px`,
-                      top: `${eye.iris.position.y * scale + offsetY}px`,
-                    }}
-                  />
-                ) : null
-              )}
-            </Fragment>
-          );
-        })}
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }

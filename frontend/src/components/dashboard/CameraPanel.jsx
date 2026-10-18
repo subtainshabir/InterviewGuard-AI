@@ -8,6 +8,7 @@ import { useEyeTracking } from "../../services/useEyeTracking";
 import { useGazeEstimation } from "../../services/useGazeEstimation";
 import { useGazeBehaviorAnalysis } from "../../services/useGazeBehaviorAnalysis";
 import { usePersonTracking } from "../../services/usePersonTracking";
+import { useObjectDetection } from "../../services/useObjectDetection";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -60,26 +61,54 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const gaze = useGazeEstimation(posedFaces, tracking.timestamp, isActive);
   const gazeBehavior = useGazeBehaviorAnalysis(gaze.faces, tracking.timestamp, isActive);
   const personTracking = usePersonTracking(gazeBehavior.faces, tracking.timestamp, isActive);
+  const objectDetection = useObjectDetection(videoRef, isActive);
   const faces = personTracking.faces;
 
   const compositeAlerts = useMemo(
-    () => [...personTracking.alerts, ...gazeBehavior.alerts].slice(0, 10),
-    [personTracking.alerts, gazeBehavior.alerts]
+    () =>
+      [
+        ...objectDetection.alerts,
+        ...personTracking.alerts,
+        ...gazeBehavior.alerts,
+      ].slice(0, 10),
+    [objectDetection.alerts, personTracking.alerts, gazeBehavior.alerts]
   );
 
   const compositeEvidence = useMemo(
-    () => [...personTracking.evidenceEvents, ...gazeBehavior.evidenceEvents].slice(0, 10),
-    [personTracking.evidenceEvents, gazeBehavior.evidenceEvents]
+    () =>
+      [
+        ...objectDetection.evidenceEvents,
+        ...personTracking.evidenceEvents,
+        ...gazeBehavior.evidenceEvents,
+      ].slice(0, 10),
+    [
+      objectDetection.evidenceEvents,
+      personTracking.evidenceEvents,
+      gazeBehavior.evidenceEvents,
+    ]
   );
 
   const compositeRisk = useMemo(() => {
-    const rawScore = Math.min(100, gazeBehavior.risk.score + personTracking.risk.score);
+    const rawScore = Math.min(
+      100,
+      gazeBehavior.risk.score + personTracking.risk.score + objectDetection.risk.score
+    );
     let level = "Low Risk";
-    if (rawScore >= 70 || personTracking.summary.isMultiplePeople) level = "High Risk";
-    else if (rawScore >= 45) level = "Elevated Risk";
-    else if (rawScore >= 20) level = "Moderate Risk";
+    if (
+      rawScore >= 70 ||
+      personTracking.summary.isMultiplePeople ||
+      objectDetection.summary.hasProhibited
+    ) {
+      level = "High Risk";
+    } else if (rawScore >= 45) {
+      level = "Elevated Risk";
+    } else if (rawScore >= 20) {
+      level = "Moderate Risk";
+    }
 
-    const note = personTracking.summary.isMultiplePeople
+    const note = objectDetection.summary.hasProhibited
+      ? objectDetection.risk.note
+      : personTracking.summary.isMultiplePeople
       ? personTracking.risk.note
       : personTracking.summary.isCandidateAbsent
       ? personTracking.risk.note
@@ -91,7 +120,13 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       level,
       note,
     };
-  }, [gazeBehavior.risk, personTracking.risk, personTracking.summary]);
+  }, [
+    gazeBehavior.risk,
+    personTracking.risk,
+    personTracking.summary,
+    objectDetection.risk,
+    objectDetection.summary,
+  ]);
 
   useEffect(() => {
     onFaceStatusChange?.({
@@ -99,6 +134,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       faces,
       gazeBehavior: gazeBehavior.summary,
       personSummary: personTracking.summary,
+      objectSummary: objectDetection.summary,
+      objectModelStatus: objectDetection.modelStatus,
       alerts: compositeAlerts,
       evidenceEvents: compositeEvidence,
       risk: compositeRisk,
@@ -108,6 +145,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     faces,
     gazeBehavior.summary,
     personTracking.summary,
+    objectDetection.summary,
+    objectDetection.modelStatus,
     compositeAlerts,
     compositeEvidence,
     compositeRisk,
@@ -148,6 +187,9 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (personTracking.summary.isMultiplePeople) {
       text += ` · Unauthorized Person Active`;
     }
+    if (objectDetection.summary.hasProhibited) {
+      text += ` · ⚠️ Prohibited Object (${objectDetection.summary.prohibitedCount})`;
+    }
     text += ` · Blinks: ${eyeTracking.events.length}`;
     return text;
   }
@@ -165,7 +207,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         {isActive && stream ? (
           <>
             <CameraVideo stream={stream} ref={videoRef} />
-            <FaceOverlay videoRef={videoRef} faces={faces} />
+            <FaceOverlay videoRef={videoRef} faces={faces} objects={objectDetection.objects} />
           </>
         ) : (
           <>

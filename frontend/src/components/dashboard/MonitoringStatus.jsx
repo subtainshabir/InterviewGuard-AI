@@ -96,6 +96,40 @@ export default function MonitoringStatus({ faceResult }) {
       return { ...card, state, description };
     }
 
+    if (card.key === "objects") {
+      const objSummary = faceResult?.objectSummary;
+      const modelStatus = faceResult?.objectModelStatus;
+      if (!faceResult || !faceResult.timestamp) return card;
+      if (modelStatus === "loading") {
+        return { ...card, state: "waiting", description: "Loading object detector…" };
+      }
+      if (modelStatus === "error") {
+        return { ...card, state: "offline", description: "Detector unavailable" };
+      }
+      if (objSummary?.hasProhibited) {
+        return {
+          ...card,
+          state: "critical",
+          description: `ALERT: Prohibited item (${objSummary.prohibitedCount})`,
+        };
+      }
+      if (objSummary?.count > 0) {
+        return {
+          ...card,
+          state: "ready",
+          description: `${objSummary.count} permitted object${objSummary.count > 1 ? "s" : ""} in view`,
+        };
+      }
+      if (modelStatus === "ready") {
+        return {
+          ...card,
+          state: "ready",
+          description: "No prohibited objects",
+        };
+      }
+      return card;
+    }
+
     return card;
   });
 

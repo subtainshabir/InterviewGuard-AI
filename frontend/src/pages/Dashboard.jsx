@@ -48,6 +48,8 @@ export default function Dashboard() {
           <DetectionPanel
             gazeBehavior={faceResult?.gazeBehavior}
             personSummary={faceResult?.personSummary}
+            objectSummary={faceResult?.objectSummary}
+            objectModelStatus={faceResult?.objectModelStatus}
           />
         </div>
 
