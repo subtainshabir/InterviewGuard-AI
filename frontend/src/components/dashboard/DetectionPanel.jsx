@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Boxes, Users, Eye, Mic, FileText } from "lucide-react";
+import { Boxes, Users, Eye, Mic, FileText, Activity } from "lucide-react";
 import GazeBehaviorView from "./GazeBehaviorView";
+import SpeechBehaviorView from "./SpeechBehaviorView";
 import PeopleDetectionView from "./PeopleDetectionView";
 import ObjectDetectionView from "./ObjectDetectionView";
 import AudioDetectionView from "./AudioDetectionView";
@@ -9,6 +10,7 @@ import TranscriptView from "./TranscriptView";
 const TABS = [
   { key: "people", label: "People", icon: Users, empty: "Awaiting camera feed" },
   { key: "gaze", label: "Gaze Behavior", icon: Eye, empty: "Awaiting gaze activity" },
+  { key: "speechBehavior", label: "Speech Behavior", icon: Activity, empty: "Awaiting speech activity" },
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
   { key: "audio", label: "Audio", icon: Mic, empty: "Microphone idle" },
   { key: "transcript", label: "Transcript", icon: FileText, empty: "No speech transcribed" },
@@ -16,6 +18,7 @@ const TABS = [
 
 export default function DetectionPanel({
   gazeBehavior,
+  speechBehavior,
   personSummary,
   objectSummary,
   objectModelStatus,
@@ -66,6 +69,9 @@ export default function DetectionPanel({
           >
             <Icon size={14} />
             {label}
+            {key === "speechBehavior" && speechBehavior?.behavioralSignals?.severity && speechBehavior.behavioralSignals.severity !== "ready" && (
+              <span className="tab-warn-indicator animate-pulse">!</span>
+            )}
             {key === "audio" && audioState?.multipleSpeakersDetected && (
               <span className="tab-warn-indicator animate-pulse">!</span>
             )}
@@ -83,6 +89,8 @@ export default function DetectionPanel({
         <PeopleDetectionView personSummary={personSummary} />
       ) : activeTab === "gaze" ? (
         <GazeBehaviorView behavior={gazeBehavior} />
+      ) : activeTab === "speechBehavior" ? (
+        <SpeechBehaviorView behavior={speechBehavior} microphone={microphone} />
       ) : activeTab === "objects" ? (
         <ObjectDetectionView
           objectSummary={objectSummary}
@@ -95,6 +103,7 @@ export default function DetectionPanel({
           microphone={microphone}
           audioState={audioState}
           transcriptState={transcriptState}
+          speechBehavior={speechBehavior}
         />
       ) : (
         <TranscriptView

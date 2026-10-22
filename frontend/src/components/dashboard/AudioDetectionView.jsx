@@ -21,13 +21,15 @@ import {
   FileText,
 } from "lucide-react";
 import TranscriptView from "./TranscriptView";
+import SpeechBehaviorView from "./SpeechBehaviorView";
 
 export default function AudioDetectionView({
   microphone,
   audioState,
   transcriptState,
+  speechBehavior,
 }) {
-  const [viewMode, setViewMode] = useState("speakers"); // "speakers" | "transcript" | "vad" | "spectrum" | "events"
+  const [viewMode, setViewMode] = useState("speakers"); // "speakers" | "behavior" | "transcript" | "vad" | "spectrum" | "events"
   const [eventFilter, setEventFilter] = useState("all"); // "all" | "speakers" | "speech" | "security" | "alerts"
   const [speakerLogFilter, setSpeakerLogFilter] = useState("all"); // "all" | "transitions" | "alerts"
 
@@ -265,6 +267,16 @@ export default function AudioDetectionView({
             <Users size={12} />
             Multiple Speakers
             {(isMultipleSpeakersActive || isAdditionalSpeakerActive || multipleSpeakersDetected) && (
+              <span className="tab-pill-dot animate-pulse" />
+            )}
+          </button>
+          <button
+            className={`mode-btn ${viewMode === "behavior" ? "mode-btn-active" : ""}`}
+            onClick={() => setViewMode("behavior")}
+          >
+            <Activity size={12} />
+            Speech Behavior
+            {speechBehavior?.behavioralSignals?.severity && speechBehavior.behavioralSignals.severity !== "ready" && (
               <span className="tab-pill-dot animate-pulse" />
             )}
           </button>
@@ -809,6 +821,16 @@ export default function AudioDetectionView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ====================================================================
+          VIEW: SPEECH BEHAVIOR ANALYSIS (PAUSES, DELAYS, TRANSITIONS, SIGNALS)
+          ==================================================================== */}
+      {viewMode === "behavior" && (
+        <SpeechBehaviorView
+          behavior={speechBehavior}
+          microphone={microphone}
+        />
       )}
 
       {/* ====================================================================

@@ -55,6 +55,7 @@ export default function Dashboard() {
             microphone={faceResult?.microphone}
             audioState={faceResult?.audioState}
             transcriptState={faceResult?.transcriptState}
+            speechBehavior={faceResult?.speechBehaviorFull}
           />
         </div>
 

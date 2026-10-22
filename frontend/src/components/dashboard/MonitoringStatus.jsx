@@ -186,6 +186,21 @@ export default function MonitoringStatus({ faceResult }) {
           description: "ALERT: Background speech detected",
         };
       }
+      const speechBehavior = faceResult?.speechBehavior;
+      if (speechBehavior?.isSuspectDelivery) {
+        return {
+          ...card,
+          state: "critical",
+          description: `ALERT: ${speechBehavior.pattern}`,
+        };
+      }
+      if (speechBehavior?.isLongPause) {
+        return {
+          ...card,
+          state: "waiting",
+          description: `Prolonged pause · Candidate silent`,
+        };
+      }
       if (audioState?.isSpeaking) {
         return {
           ...card,
@@ -197,7 +212,9 @@ export default function MonitoringStatus({ faceResult }) {
         return {
           ...card,
           state: "ready",
-          description: "Audio clear · Silence",
+          description: speechBehavior?.pattern
+            ? `Audio clear · ${speechBehavior.pattern}`
+            : "Audio clear · Silence",
         };
       }
       return card;

@@ -10,6 +10,7 @@ import { useHeadPose } from "../../services/useHeadPose";
 import { useEyeTracking } from "../../services/useEyeTracking";
 import { useGazeEstimation } from "../../services/useGazeEstimation";
 import { useGazeBehaviorAnalysis } from "../../services/useGazeBehaviorAnalysis";
+import { useSpeechBehaviorAnalysis } from "../../services/useSpeechBehaviorAnalysis";
 import { usePersonTracking } from "../../services/usePersonTracking";
 import { useObjectDetection } from "../../services/useObjectDetection";
 import CameraVideo from "./CameraVideo";
@@ -76,6 +77,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
 
   const gaze = useGazeEstimation(posedFaces, tracking.timestamp, isActive);
   const gazeBehavior = useGazeBehaviorAnalysis(gaze.faces, tracking.timestamp, isActive);
+  const speechBehavior = useSpeechBehaviorAnalysis(audioState, transcriptState, isActive);
   const personTracking = usePersonTracking(gazeBehavior.faces, tracking.timestamp, isActive);
   const objectDetection = useObjectDetection(videoRef, isActive);
   const faces = personTracking.faces;
@@ -87,8 +89,15 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...personTracking.alerts,
         ...gazeBehavior.alerts,
         ...audioState.alerts,
+        ...speechBehavior.alerts,
       ].slice(0, 10),
-    [objectDetection.alerts, personTracking.alerts, gazeBehavior.alerts, audioState.alerts]
+    [
+      objectDetection.alerts,
+      personTracking.alerts,
+      gazeBehavior.alerts,
+      audioState.alerts,
+      speechBehavior.alerts,
+    ]
   );
 
   const compositeEvidence = useMemo(
@@ -98,12 +107,14 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...personTracking.evidenceEvents,
         ...gazeBehavior.evidenceEvents,
         ...audioState.evidenceEvents,
+        ...speechBehavior.evidenceEvents,
       ].slice(0, 10),
     [
       objectDetection.evidenceEvents,
       personTracking.evidenceEvents,
       gazeBehavior.evidenceEvents,
       audioState.evidenceEvents,
+      speechBehavior.evidenceEvents,
     ]
   );
 
@@ -113,17 +124,23 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       gazeBehavior.risk.score +
         personTracking.risk.score +
         objectDetection.risk.score +
-        audioState.risk.score
+        audioState.risk.score +
+        speechBehavior.risk.score
     );
     let level = "Low Risk";
     if (
       rawScore >= 70 ||
       personTracking.summary.isMultiplePeople ||
       objectDetection.summary.hasProhibited ||
-      audioState.multipleSpeakersDetected
+      audioState.multipleSpeakersDetected ||
+      speechBehavior.behavioralSignals.severity === "critical"
     ) {
       level = "High Risk";
-    } else if (rawScore >= 45 || audioState.backgroundSpeech.detected) {
+    } else if (
+      rawScore >= 45 ||
+      audioState.backgroundSpeech.detected ||
+      speechBehavior.behavioralSignals.severity === "warning"
+    ) {
       level = "Elevated Risk";
     } else if (rawScore >= 20) {
       level = "Moderate Risk";
@@ -135,8 +152,12 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       ? objectDetection.risk.note
       : personTracking.summary.isMultiplePeople
       ? personTracking.risk.note
+      : speechBehavior.behavioralSignals.severity === "critical"
+      ? speechBehavior.risk.note
       : audioState.backgroundSpeech.detected
       ? audioState.risk.note
+      : speechBehavior.behavioralSignals.severity === "warning"
+      ? speechBehavior.risk.note
       : personTracking.summary.isCandidateAbsent
       ? personTracking.risk.note
       : gazeBehavior.risk.note;
@@ -156,6 +177,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     audioState.risk,
     audioState.backgroundSpeech,
     audioState.multipleSpeakersDetected,
+    speechBehavior.risk,
+    speechBehavior.behavioralSignals,
   ]);
 
   useEffect(() => {
@@ -163,6 +186,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       ...tracking,
       faces,
       gazeBehavior: gazeBehavior.summary,
+      speechBehavior: speechBehavior.summary,
+      speechBehaviorFull: speechBehavior,
       personSummary: personTracking.summary,
       objectSummary: objectDetection.summary,
       objectModelStatus: objectDetection.modelStatus,
@@ -179,6 +204,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     tracking,
     faces,
     gazeBehavior.summary,
+    speechBehavior.summary,
+    speechBehavior,
     personTracking.summary,
     objectDetection.summary,
     objectDetection.modelStatus,
