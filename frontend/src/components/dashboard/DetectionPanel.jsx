@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Boxes, Users, Eye } from "lucide-react";
+import { Boxes, Users, Eye, Mic } from "lucide-react";
 import GazeBehaviorView from "./GazeBehaviorView";
 import PeopleDetectionView from "./PeopleDetectionView";
 import ObjectDetectionView from "./ObjectDetectionView";
+import AudioDetectionView from "./AudioDetectionView";
 
 const TABS = [
   { key: "people", label: "People", icon: Users, empty: "Awaiting camera feed" },
   { key: "gaze", label: "Gaze Behavior", icon: Eye, empty: "Awaiting gaze activity" },
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
+  { key: "audio", label: "Audio", icon: Mic, empty: "Microphone idle" },
 ];
 
 export default function DetectionPanel({
@@ -17,6 +19,8 @@ export default function DetectionPanel({
   objectModelStatus,
   objectRules,
   onToggleObjectRule,
+  microphone,
+  audioState,
 }) {
   const [activeTab, setActiveTab] = useState("people");
   const tab = TABS.find((t) => t.key === activeTab);
@@ -34,6 +38,11 @@ export default function DetectionPanel({
           {objectSummary && objectSummary.hasProhibited && (
             <span className="badge badge-critical animate-pulse">
               ⚠️ Prohibited Object
+            </span>
+          )}
+          {audioState?.isSpeaking && (
+            <span className="badge badge-active animate-pulse">
+              🎤 Speaking ({audioState.volume}%)
             </span>
           )}
         </div>
@@ -58,13 +67,15 @@ export default function DetectionPanel({
         <PeopleDetectionView personSummary={personSummary} />
       ) : activeTab === "gaze" ? (
         <GazeBehaviorView behavior={gazeBehavior} />
-      ) : (
+      ) : activeTab === "objects" ? (
         <ObjectDetectionView
           objectSummary={objectSummary}
           modelStatus={objectModelStatus}
           rules={objectRules}
           onToggleRule={onToggleObjectRule}
         />
+      ) : (
+        <AudioDetectionView microphone={microphone} audioState={audioState} />
       )}
     </section>
   );

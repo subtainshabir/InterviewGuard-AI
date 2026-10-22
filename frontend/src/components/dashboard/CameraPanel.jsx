@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
-import { VideoOff, ShieldAlert } from "lucide-react";
+import { VideoOff, ShieldAlert, Mic, MicOff, Volume2 } from "lucide-react";
 import { useCamera } from "../../services/useCamera";
+import { useMicrophone } from "../../services/useMicrophone";
+import { useAudioProcessing } from "../../services/useAudioProcessing";
 import { useFaceDetection } from "../../services/useFaceDetection";
 import { useFaceTracking } from "../../services/useFaceTracking";
 import { useHeadPose } from "../../services/useHeadPose";
@@ -37,6 +39,12 @@ const ERROR_STATES = new Set(["permission_denied", "unavailable", "error"]);
 
 export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const { status, errorMessage, stream, start, stop } = useCamera();
+  const microphone = useMicrophone();
+  const audioState = useAudioProcessing(
+    microphone.stream,
+    microphone.status === "active",
+    microphone.isMuted
+  );
   const videoRef = useRef(null);
   const isActive = status === "active";
   const isRequesting = status === "requesting";
@@ -70,8 +78,9 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...objectDetection.alerts,
         ...personTracking.alerts,
         ...gazeBehavior.alerts,
+        ...audioState.alerts,
       ].slice(0, 10),
-    [objectDetection.alerts, personTracking.alerts, gazeBehavior.alerts]
+    [objectDetection.alerts, personTracking.alerts, gazeBehavior.alerts, audioState.alerts]
   );
 
   const compositeEvidence = useMemo(
@@ -138,6 +147,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       objectModelStatus: objectDetection.modelStatus,
       objectRules: objectDetection.rules,
       onToggleObjectRule: objectDetection.toggleRule,
+      microphone,
+      audioState,
       alerts: compositeAlerts,
       evidenceEvents: compositeEvidence,
       risk: compositeRisk,
@@ -151,6 +162,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     objectDetection.modelStatus,
     objectDetection.rules,
     objectDetection.toggleRule,
+    microphone,
+    audioState,
     compositeAlerts,
     compositeEvidence,
     compositeRisk,
@@ -158,8 +171,15 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   ]);
 
   function handleToggle() {
-    if (isActive) stop();
-    else start();
+    if (isActive) {
+      stop();
+      microphone.stop();
+    } else {
+      start();
+      if (microphone.status !== "active" && microphone.status !== "requesting") {
+        microphone.start();
+      }
+    }
   }
 
   function faceStatusText() {
@@ -194,17 +214,53 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     if (objectDetection.summary.hasProhibited) {
       text += ` · ⚠️ Prohibited Object (${objectDetection.summary.prohibitedCount})`;
     }
+    if (microphone.status === "active") {
+      if (audioState.isSpeaking) {
+        text += ` · 🎤 Speaking (${audioState.volume}%)`;
+      }
+    } else if (microphone.isMuted) {
+      text += ` · 🎤 Mic Muted`;
+    }
     text += ` · Blinks: ${eyeTracking.events.length}`;
     return text;
   }
+
+  const isMicDenied = microphone.status === "permission_denied";
 
   return (
     <section className="panel camera-card">
       <div className="panel-header">
         <h2>Live interview</h2>
-        <span className={`badge ${isActive ? "badge-active" : isErrorState ? "badge-critical" : "badge-idle"}`}>
-          {isActive ? "● Camera active" : BADGE_LABEL[status] ?? "Camera offline"}
-        </span>
+        <div className="panel-header-badges">
+          <span className={`badge ${isActive ? "badge-active" : isErrorState ? "badge-critical" : "badge-idle"}`}>
+            {isActive ? "● Camera active" : BADGE_LABEL[status] ?? "Camera offline"}
+          </span>
+          <span
+            className={`badge ${
+              microphone.status === "active"
+                ? audioState.isSpeaking
+                  ? "badge-active animate-pulse"
+                  : "badge-ready"
+                : microphone.isMuted
+                ? "badge-warn"
+                : isMicDenied
+                ? "badge-critical"
+                : "badge-idle"
+            }`}
+          >
+            {microphone.status === "active"
+              ? audioState.isSpeaking
+                ? `🎤 Speaking (${audioState.volume}%)`
+                : "🎤 Mic active"
+              : microphone.isMuted
+              ? "🎤 Mic muted"
+              : microphone.status === "requesting"
+              ? "🎤 Requesting mic…"
+              : isMicDenied
+              ? "🎤 Mic denied"
+              : "🎤 Mic offline"}
+          </span>
+        </div>
       </div>
 
       <div className="camera-frame">
@@ -231,13 +287,50 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       </div>
 
       <div className="camera-controls">
+        {isActive && (
+          <div className="mic-controls-inline">
+            <div
+              className={`mic-level-pill ${microphone.isMuted ? "mic-pill-muted" : ""}`}
+              title={`Microphone volume: ${audioState.volume}% (${audioState.db} dB)`}
+            >
+              {microphone.isMuted ? (
+                <MicOff size={13} className="text-warn" />
+              ) : (
+                <Mic size={13} className={audioState.isSpeaking ? "text-accent animate-pulse" : ""} />
+              )}
+              <div className="mic-meter-track">
+                <div
+                  className={`mic-meter-fill ${
+                    audioState.volume > 75 ? "meter-danger" : audioState.volume > 25 ? "meter-speech" : "meter-normal"
+                  }`}
+                  style={{ width: `${microphone.isMuted ? 0 : audioState.volume}%` }}
+                />
+              </div>
+              <span className="mic-meter-label">
+                {microphone.isMuted ? "Muted" : `${audioState.volume}%`}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className={`control-button ${microphone.isMuted ? "control-warn" : ""}`}
+              onClick={microphone.toggleMute}
+              disabled={microphone.status !== "active" && microphone.status !== "muted"}
+              title={microphone.isMuted ? "Unmute microphone" : "Mute microphone"}
+            >
+              {microphone.isMuted ? <MicOff size={14} /> : <Mic size={14} />}
+              {microphone.isMuted ? "Unmute" : "Mute"}
+            </button>
+          </div>
+        )}
+
         <button
           type="button"
           className="control-button control-primary"
           onClick={handleToggle}
           disabled={isRequesting || (!hasSession && !isActive)}
         >
-          {isActive ? "Stop Camera" : isRequesting ? "Requesting…" : "Start Camera"}
+          {isActive ? "Stop Feed" : isRequesting ? "Requesting…" : "Start Camera & Mic"}
         </button>
       </div>
     </section>

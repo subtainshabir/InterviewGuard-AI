@@ -2232,3 +2232,353 @@
   font-weight: 700 !important;
   letter-spacing: 0.02em;
 }
+
+/* ==========================================================================
+   Microphone & Audio Processing Integration Styles
+   ========================================================================== */
+
+.mic-controls-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mic-level-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(22, 28, 34, 0.85);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.mic-level-pill.mic-pill-muted {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.mic-meter-track {
+  width: 50px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mic-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.08s ease-out;
+}
+
+.meter-normal {
+  background: var(--accent);
+}
+
+.meter-speech {
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+.meter-danger {
+  background: var(--danger);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+.mic-meter-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  min-width: 26px;
+  color: var(--text-primary);
+}
+
+.control-warn {
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.1);
+}
+
+.control-warn:hover:not(:disabled) {
+  border-color: #eab308;
+  background: rgba(234, 179, 8, 0.18);
+}
+
+/* Audio Detection View */
+.audio-detection-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audio-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(22, 28, 34, 0.6);
+  flex-wrap: wrap;
+}
+
+.audio-banner-ready {
+  border-color: rgba(73, 201, 189, 0.3);
+}
+
+.audio-banner-speaking {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.1);
+}
+
+.audio-banner-muted {
+  border-color: rgba(234, 179, 8, 0.35);
+  background: rgba(234, 179, 8, 0.06);
+}
+
+.audio-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audio-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.audio-mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-btn-mute {
+  color: var(--text-secondary);
+}
+
+.mode-btn-mute:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+/* Spectrum Card */
+.spectrum-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(14, 19, 24, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.spectrum-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.spectrum-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+.spectrum-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.spectrum-bars-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 80px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spectrum-bar-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.spectrum-bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.06s ease-out;
+}
+
+.spectrum-fill-speech {
+  background: linear-gradient(180deg, #38bdf8 0%, rgba(56, 189, 248, 0.4) 100%);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+.spectrum-fill-high {
+  background: linear-gradient(180deg, #f43f5e 0%, #fb7185 100%);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+}
+
+.spectrum-fill-idle {
+  background: linear-gradient(180deg, rgba(73, 201, 189, 0.5) 0%, rgba(73, 201, 189, 0.15) 100%);
+}
+
+.spectrum-fill-muted {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.spectrum-labels-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-tertiary, #64748b);
+  padding-top: 2px;
+}
+
+/* Audio Metrics Grid */
+.audio-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.audio-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(14, 19, 24, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.audio-metric-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.audio-metric-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.audio-metric-num {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.audio-metric-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.audio-metric-footnote {
+  font-size: 10px;
+  color: var(--text-tertiary, #64748b);
+  line-height: 1.3;
+}
+
+.audio-meter-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.audio-meter-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.08s ease-out;
+}
+
+.audio-ratio-bar-track {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.audio-ratio-bar-speech {
+  height: 100%;
+  background: #38bdf8;
+  transition: width 0.2s ease;
+}
+
+.audio-ratio-bar-silence {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: width 0.2s ease;
+}
+
+/* Audio Events */
+.audio-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.audio-event-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: rgba(14, 19, 24, 0.5);
+  border: 1px solid var(--border);
+}
+
+.audio-event-warning {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.06);
+}
+
+.audio-event-ready {
+  border-color: rgba(73, 201, 189, 0.25);
+}
+
+.audio-event-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.audio-event-msg {
+  flex: 1;
+  color: var(--text-primary);
+}

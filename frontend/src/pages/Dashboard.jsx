@@ -52,6 +52,8 @@ export default function Dashboard() {
             objectModelStatus={faceResult?.objectModelStatus}
             objectRules={faceResult?.objectRules}
             onToggleObjectRule={faceResult?.onToggleObjectRule}
+            microphone={faceResult?.microphone}
+            audioState={faceResult?.audioState}
           />
         </div>
 

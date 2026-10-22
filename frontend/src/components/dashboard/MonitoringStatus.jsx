@@ -130,6 +130,43 @@ export default function MonitoringStatus({ faceResult }) {
       return card;
     }
 
+    if (card.key === "audio") {
+      const micStatus = faceResult?.microphone?.status;
+      const isMuted = faceResult?.microphone?.isMuted;
+      const audioState = faceResult?.audioState;
+
+      if (!micStatus || micStatus === "idle" || micStatus === "stopped") {
+        return { ...card, state: "offline", description: "Microphone offline" };
+      }
+      if (micStatus === "requesting") {
+        return { ...card, state: "waiting", description: "Requesting mic permission…" };
+      }
+      if (micStatus === "permission_denied") {
+        return { ...card, state: "critical", description: "Mic permission denied" };
+      }
+      if (micStatus === "unavailable" || micStatus === "error") {
+        return { ...card, state: "offline", description: "Microphone unavailable" };
+      }
+      if (isMuted || micStatus === "muted") {
+        return { ...card, state: "waiting", description: "Microphone muted" };
+      }
+      if (audioState?.isSpeaking) {
+        return {
+          ...card,
+          state: "ready",
+          description: `Voice active (${audioState.volume}%, ${audioState.db} dB)`,
+        };
+      }
+      if (micStatus === "active") {
+        return {
+          ...card,
+          state: "ready",
+          description: "Audio clear · Silence",
+        };
+      }
+      return card;
+    }
+
     return card;
   });
 
