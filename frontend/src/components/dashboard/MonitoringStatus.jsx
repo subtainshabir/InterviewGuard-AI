@@ -101,10 +101,10 @@ export default function MonitoringStatus({ faceResult }) {
       const modelStatus = faceResult?.objectModelStatus;
       if (!faceResult || !faceResult.timestamp) return card;
       if (modelStatus === "loading") {
-        return { ...card, state: "waiting", description: "Loading object detector…" };
+        return { ...card, state: "waiting", description: "Loading YOLO11 detector…" };
       }
       if (modelStatus === "error") {
-        return { ...card, state: "offline", description: "Detector unavailable" };
+        return { ...card, state: "offline", description: "YOLO11 unavailable" };
       }
       if (objSummary?.hasProhibited) {
         return {

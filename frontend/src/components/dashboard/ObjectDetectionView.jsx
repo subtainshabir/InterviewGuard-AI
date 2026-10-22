@@ -47,8 +47,8 @@ export default function ObjectDetectionView({
     return (
       <div className="empty-state">
         <Boxes size={22} strokeWidth={1.5} className="animate-spin" />
-        <p className="empty-title">Loading object detector…</p>
-        <p className="empty-sub">Initializing COCO-SSD MobileNet real-time detection pipeline.</p>
+        <p className="empty-title">Loading YOLO11 neural detector…</p>
+        <p className="empty-sub">Initializing Ultralytics YOLO11 ONNX neural detection pipeline.</p>
       </div>
     );
   }

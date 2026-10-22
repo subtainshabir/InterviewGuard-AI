@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import * as cocoSsd from "@tensorflow-models/coco-ssd";
+import { loadYoloModel, detectYolo } from "./yoloDetector";
 import {
   DEFAULT_UNAUTHORIZED_RULES,
   evaluateObjectRule,
@@ -7,7 +7,7 @@ import {
 } from "./unauthorizedObjectRules";
 
 const DETECTION_INTERVAL_MS = 600;
-const MIN_SCORE_THRESHOLD = 0.40;
+const MIN_SCORE_THRESHOLD = 0.30;
 const MATCH_DISTANCE_FACTOR = 0.85;
 const GRACE_PERIOD_FRAMES = 2; // ~1.2s grace before object drop
 const MAX_CONFIDENCE_HISTORY = 10;
@@ -17,21 +17,10 @@ const MAX_EVIDENCE = 10;
 const PERSISTENT_THRESHOLD_MS = 3000;      // 3s sustained detection confirms persistent object
 const HIGHLY_PERSISTENT_THRESHOLD_MS = 15000; // 15s sustained indicates stationary object
 
-let modelLoadPromise = null;
 let nextTrackId = 1;
 let nextAlertId = 1;
 let nextEvidenceId = 1;
 let nextEventId = 1;
-
-function loadCocoModel() {
-  if (!modelLoadPromise) {
-    modelLoadPromise = cocoSsd.load({ base: "lite_mobilenet_v2" }).catch((err) => {
-      modelLoadPromise = null;
-      throw err;
-    });
-  }
-  return modelLoadPromise;
-}
 
 export function formatTime(ms) {
   if (!ms || ms < 0) return "00:00";
@@ -129,15 +118,15 @@ export function useObjectDetection(videoRef, active, initialRules = DEFAULT_UNAU
   // Load Model
   useEffect(() => {
     let cancelled = false;
-    loadCocoModel()
-      .then((model) => {
+    loadYoloModel()
+      .then((session) => {
         if (!cancelled) {
-          modelRef.current = model;
+          modelRef.current = session;
           setModelStatus("ready");
         }
       })
       .catch((err) => {
-        console.error("[useObjectDetection] Model load failed:", err);
+        console.error("[useObjectDetection] YOLO11 model load failed:", err);
         if (!cancelled) {
           setModelStatus("error");
         }
@@ -151,11 +140,11 @@ export function useObjectDetection(videoRef, active, initialRules = DEFAULT_UNAU
   // Real-time Detection Loop with Object Event Tracking
   const runDetection = useCallback(async () => {
     const video = videoRef.current;
-    const model = modelRef.current;
-    if (!video || video.readyState < 2 || !model) return;
+    const session = modelRef.current;
+    if (!video || video.readyState < 2 || !session) return;
 
     try {
-      const rawDetections = await model.detect(video, 12, MIN_SCORE_THRESHOLD);
+      const rawDetections = await detectYolo(session, video, MIN_SCORE_THRESHOLD);
       const timestamp = Date.now();
 
       // Filter and evaluate raw detections
@@ -509,8 +498,8 @@ export function useObjectDetection(videoRef, active, initialRules = DEFAULT_UNAU
           note,
         },
       });
-    } catch {
-      // Ignore transient inference errors
+    } catch (err) {
+      console.warn("[useObjectDetection] Detection frame error:", err);
     }
   }, [videoRef, rules]);
 
