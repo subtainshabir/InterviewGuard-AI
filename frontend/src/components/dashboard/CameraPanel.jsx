@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { VideoOff, ShieldAlert, Mic, MicOff, Volume2 } from "lucide-react";
 import { useCamera } from "../../services/useCamera";
 import { useMicrophone } from "../../services/useMicrophone";
 import { useAudioProcessing } from "../../services/useAudioProcessing";
+import { useSpeechToText } from "../../services/useSpeechToText";
 import { useFaceDetection } from "../../services/useFaceDetection";
 import { useFaceTracking } from "../../services/useFaceTracking";
 import { useHeadPose } from "../../services/useHeadPose";
@@ -45,6 +46,13 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     microphone.status === "active",
     microphone.isMuted
   );
+  const [showCaptions, setShowCaptions] = useState(true);
+  const transcriptState = useSpeechToText({
+    isActive: microphone.status === "active",
+    isMuted: microphone.isMuted,
+    speakerDiarization: audioState.speakerDiarization,
+    sessionId: hasSession ? "session-current" : "default",
+  });
   const videoRef = useRef(null);
   const isActive = status === "active";
   const isRequesting = status === "requesting";
@@ -162,6 +170,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       onToggleObjectRule: objectDetection.toggleRule,
       microphone,
       audioState,
+      transcriptState,
       alerts: compositeAlerts,
       evidenceEvents: compositeEvidence,
       risk: compositeRisk,
@@ -177,6 +186,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     objectDetection.toggleRule,
     microphone,
     audioState,
+    transcriptState,
     compositeAlerts,
     compositeEvidence,
     compositeRisk,
@@ -297,6 +307,26 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         )}
         {isActive && <div className="camera-tag candidate-tag">Candidate</div>}
         {isActive && <div className="camera-tag monitoring-tag">{faceStatusText()}</div>}
+
+        {isActive && showCaptions && (transcriptState.interimText || (transcriptState.segments.length > 0 && audioState.isSpeaking)) && (
+          <div className="camera-live-captions">
+            <span
+              className={`caption-speaker-tag ${
+                audioState.speakerDiarization?.isAdditionalSpeakerActive
+                  ? "tag-danger"
+                  : "tag-candidate"
+              }`}
+            >
+              {audioState.speakerDiarization?.isAdditionalSpeakerActive
+                ? "⚠️ Speaker 2:"
+                : "Candidate:"}
+            </span>
+            <span className="caption-text">
+              {transcriptState.interimText ||
+                transcriptState.segments[transcriptState.segments.length - 1]?.text}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="camera-controls">
@@ -323,6 +353,15 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
                 {microphone.isMuted ? "Muted" : `${audioState.volume}%`}
               </span>
             </div>
+
+            <button
+              type="button"
+              className={`control-button ${showCaptions ? "control-active" : ""}`}
+              onClick={() => setShowCaptions((prev) => !prev)}
+              title={showCaptions ? "Hide Live Subtitles [CC]" : "Show Live Subtitles [CC]"}
+            >
+              CC
+            </button>
 
             <button
               type="button"

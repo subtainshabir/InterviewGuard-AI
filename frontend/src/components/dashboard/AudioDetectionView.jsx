@@ -18,13 +18,16 @@ import {
   UserX,
   ArrowRightLeft,
   Layers,
+  FileText,
 } from "lucide-react";
+import TranscriptView from "./TranscriptView";
 
 export default function AudioDetectionView({
   microphone,
   audioState,
+  transcriptState,
 }) {
-  const [viewMode, setViewMode] = useState("speakers"); // "speakers" | "vad" | "spectrum" | "events"
+  const [viewMode, setViewMode] = useState("speakers"); // "speakers" | "transcript" | "vad" | "spectrum" | "events"
   const [eventFilter, setEventFilter] = useState("all"); // "all" | "speakers" | "speech" | "security" | "alerts"
   const [speakerLogFilter, setSpeakerLogFilter] = useState("all"); // "all" | "transitions" | "alerts"
 
@@ -264,6 +267,13 @@ export default function AudioDetectionView({
             {(isMultipleSpeakersActive || isAdditionalSpeakerActive || multipleSpeakersDetected) && (
               <span className="tab-pill-dot animate-pulse" />
             )}
+          </button>
+          <button
+            className={`mode-btn ${viewMode === "transcript" ? "mode-btn-active" : ""}`}
+            onClick={() => setViewMode("transcript")}
+          >
+            <FileText size={12} />
+            Transcript ({transcriptState?.segments?.length || 0})
           </button>
           <button
             className={`mode-btn ${viewMode === "vad" ? "mode-btn-active" : ""}`}
@@ -799,6 +809,16 @@ export default function AudioDetectionView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ====================================================================
+          VIEW: SPEECH-TO-TEXT TRANSCRIPT (TRANSCRIPTION, TIMESTAMPS, SEGMENTS)
+          ==================================================================== */}
+      {viewMode === "transcript" && (
+        <TranscriptView
+          transcriptState={transcriptState}
+          microphone={microphone}
+        />
       )}
 
       {/* ====================================================================

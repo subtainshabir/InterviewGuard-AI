@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Boxes, Users, Eye, Mic } from "lucide-react";
+import { Boxes, Users, Eye, Mic, FileText } from "lucide-react";
 import GazeBehaviorView from "./GazeBehaviorView";
 import PeopleDetectionView from "./PeopleDetectionView";
 import ObjectDetectionView from "./ObjectDetectionView";
 import AudioDetectionView from "./AudioDetectionView";
+import TranscriptView from "./TranscriptView";
 
 const TABS = [
   { key: "people", label: "People", icon: Users, empty: "Awaiting camera feed" },
   { key: "gaze", label: "Gaze Behavior", icon: Eye, empty: "Awaiting gaze activity" },
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
   { key: "audio", label: "Audio", icon: Mic, empty: "Microphone idle" },
+  { key: "transcript", label: "Transcript", icon: FileText, empty: "No speech transcribed" },
 ];
 
 export default function DetectionPanel({
@@ -21,6 +23,7 @@ export default function DetectionPanel({
   onToggleObjectRule,
   microphone,
   audioState,
+  transcriptState,
 }) {
   const [activeTab, setActiveTab] = useState("people");
   const tab = TABS.find((t) => t.key === activeTab);
@@ -66,6 +69,12 @@ export default function DetectionPanel({
             {key === "audio" && audioState?.multipleSpeakersDetected && (
               <span className="tab-warn-indicator animate-pulse">!</span>
             )}
+            {key === "transcript" && transcriptState?.segments?.length > 0 && (
+              <span className="tab-count-pill">{transcriptState.segments.length}</span>
+            )}
+            {key === "transcript" && transcriptState?.stats?.suspectSegmentsCount > 0 && (
+              <span className="tab-warn-indicator animate-pulse">!</span>
+            )}
           </button>
         ))}
       </div>
@@ -81,8 +90,17 @@ export default function DetectionPanel({
           rules={objectRules}
           onToggleRule={onToggleObjectRule}
         />
+      ) : activeTab === "audio" ? (
+        <AudioDetectionView
+          microphone={microphone}
+          audioState={audioState}
+          transcriptState={transcriptState}
+        />
       ) : (
-        <AudioDetectionView microphone={microphone} audioState={audioState} />
+        <TranscriptView
+          transcriptState={transcriptState}
+          microphone={microphone}
+        />
       )}
     </section>
   );

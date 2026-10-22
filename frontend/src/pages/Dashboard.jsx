@@ -54,6 +54,7 @@ export default function Dashboard() {
             onToggleObjectRule={faceResult?.onToggleObjectRule}
             microphone={faceResult?.microphone}
             audioState={faceResult?.audioState}
+            transcriptState={faceResult?.transcriptState}
           />
         </div>
 
