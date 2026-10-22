@@ -1,0 +1,151 @@
+name: InterviewGuard CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# Concurrency management: cancel redundant in-progress runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # 1. Frontend Continuous Integration (Lint, Build, Artifacts)
+  # ===========================================================================
+  frontend-ci:
+    name: Frontend CI (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci || npm install
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build production bundle (Vite)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload frontend build artifacts
+        if: matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+
+  # ===========================================================================
+  # 2. Backend Continuous Integration (Dependencies, Syntax, Pytest)
+  # ===========================================================================
+  backend-ci:
+    name: Backend CI (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+
+      - name: Verify Python compilation & syntax
+        run: |
+          python -m compileall backend/app
+
+      - name: Run Pytest test suite
+        working-directory: backend
+        run: |
+          pytest tests -v --tb=short
+
+  # ===========================================================================
+  # 3. Docker Containerization & Compose Validation
+  # ===========================================================================
+  docker-validation:
+    name: Docker Build & Compose Verification
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          docker compose config
+
+      - name: Build Backend Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: interviewguard-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: interviewguard-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================================================
+  # 4. Security Audit & Vulnerability Check
+  # ===========================================================================
+  security-audit:
+    name: Security & Vulnerability Audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Audit Frontend npm packages
+        working-directory: frontend
+        run: |
+          npm audit --audit-level=high || true

@@ -1,0 +1,87 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL Database Service
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: interviewguard-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin1234}
+      POSTGRES_DB: ${POSTGRES_DB:-interviewguard}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-interviewguard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - interviewguard-network
+
+  # ---------------------------------------------------------------------------
+  # 2. FastAPI Backend Service
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: interviewguard-backend
+    environment:
+      IGUARD_APP_NAME: "InterviewGuard AI"
+      IGUARD_ENVIRONMENT: "production"
+      IGUARD_API_PREFIX: "/api"
+      IGUARD_CORS_ORIGINS: "http://localhost,http://localhost:80,http://localhost:5173"
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-admin1234}@postgres:5432/${POSTGRES_DB:-interviewguard}"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - interviewguard-network
+
+  # ---------------------------------------------------------------------------
+  # 3. React + Vite Nginx Frontend Service
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: interviewguard-frontend
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - interviewguard-network
+
+# -----------------------------------------------------------------------------
+# Persistent Volumes & Networks
+# -----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  interviewguard-network:
+    driver: bridge
