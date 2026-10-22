@@ -150,11 +150,47 @@ export default function MonitoringStatus({ faceResult }) {
       if (isMuted || micStatus === "muted") {
         return { ...card, state: "waiting", description: "Microphone muted" };
       }
+      if (audioState?.speakerDiarization?.isMultipleSpeakersActive) {
+        return {
+          ...card,
+          state: "critical",
+          description: "CRITICAL: Multiple voices detected",
+        };
+      }
+      if (audioState?.speakerDiarization?.isAdditionalSpeakerActive) {
+        const pitch = audioState.speakerDiarization.currentPitch;
+        return {
+          ...card,
+          state: "critical",
+          description: `ALERT: Additional speaker (${pitch} Hz)`,
+        };
+      }
+      if (audioState?.multipleSpeakersDetected) {
+        return {
+          ...card,
+          state: "critical",
+          description: "CRITICAL: Multiple voices detected",
+        };
+      }
+      if (audioState?.whisperDetected) {
+        return {
+          ...card,
+          state: "critical",
+          description: "ALERT: Whispering / coaching detected",
+        };
+      }
+      if (audioState?.backgroundSpeech?.detected) {
+        return {
+          ...card,
+          state: "critical",
+          description: "ALERT: Background speech detected",
+        };
+      }
       if (audioState?.isSpeaking) {
         return {
           ...card,
           state: "ready",
-          description: `Voice active (${audioState.volume}%, ${audioState.db} dB)`,
+          description: `Candidate speech (${audioState.volume}%, ${audioState.db} dB)`,
         };
       }
       if (micStatus === "active") {

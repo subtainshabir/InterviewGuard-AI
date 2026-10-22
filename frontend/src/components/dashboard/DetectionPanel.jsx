@@ -40,11 +40,15 @@ export default function DetectionPanel({
               ⚠️ Prohibited Object
             </span>
           )}
-          {audioState?.isSpeaking && (
+          {audioState?.multipleSpeakersDetected ? (
+            <span className="badge badge-critical animate-pulse">
+              ⚠️ Multiple Voices
+            </span>
+          ) : audioState?.isSpeaking ? (
             <span className="badge badge-active animate-pulse">
               🎤 Speaking ({audioState.volume}%)
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -59,6 +63,9 @@ export default function DetectionPanel({
           >
             <Icon size={14} />
             {label}
+            {key === "audio" && audioState?.multipleSpeakersDetected && (
+              <span className="tab-warn-indicator animate-pulse">!</span>
+            )}
           </button>
         ))}
       </div>

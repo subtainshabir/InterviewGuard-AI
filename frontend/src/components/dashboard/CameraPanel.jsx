@@ -89,36 +89,46 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...objectDetection.evidenceEvents,
         ...personTracking.evidenceEvents,
         ...gazeBehavior.evidenceEvents,
+        ...audioState.evidenceEvents,
       ].slice(0, 10),
     [
       objectDetection.evidenceEvents,
       personTracking.evidenceEvents,
       gazeBehavior.evidenceEvents,
+      audioState.evidenceEvents,
     ]
   );
 
   const compositeRisk = useMemo(() => {
     const rawScore = Math.min(
       100,
-      gazeBehavior.risk.score + personTracking.risk.score + objectDetection.risk.score
+      gazeBehavior.risk.score +
+        personTracking.risk.score +
+        objectDetection.risk.score +
+        audioState.risk.score
     );
     let level = "Low Risk";
     if (
       rawScore >= 70 ||
       personTracking.summary.isMultiplePeople ||
-      objectDetection.summary.hasProhibited
+      objectDetection.summary.hasProhibited ||
+      audioState.multipleSpeakersDetected
     ) {
       level = "High Risk";
-    } else if (rawScore >= 45) {
+    } else if (rawScore >= 45 || audioState.backgroundSpeech.detected) {
       level = "Elevated Risk";
     } else if (rawScore >= 20) {
       level = "Moderate Risk";
     }
 
-    const note = objectDetection.summary.hasProhibited
+    const note = audioState.multipleSpeakersDetected
+      ? audioState.risk.note
+      : objectDetection.summary.hasProhibited
       ? objectDetection.risk.note
       : personTracking.summary.isMultiplePeople
       ? personTracking.risk.note
+      : audioState.backgroundSpeech.detected
+      ? audioState.risk.note
       : personTracking.summary.isCandidateAbsent
       ? personTracking.risk.note
       : gazeBehavior.risk.note;
@@ -135,6 +145,9 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     personTracking.summary,
     objectDetection.risk,
     objectDetection.summary,
+    audioState.risk,
+    audioState.backgroundSpeech,
+    audioState.multipleSpeakersDetected,
   ]);
 
   useEffect(() => {
