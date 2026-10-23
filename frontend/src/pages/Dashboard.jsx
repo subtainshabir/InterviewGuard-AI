@@ -57,6 +57,7 @@ export default function Dashboard() {
             transcriptState={faceResult?.transcriptState}
             speechBehavior={faceResult?.speechBehaviorFull}
             browserMonitoring={faceResult?.browserMonitoring}
+            screenShare={faceResult?.screenShare}
           />
         </div>
 

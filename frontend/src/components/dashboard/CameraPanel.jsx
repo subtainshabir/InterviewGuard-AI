@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { VideoOff, ShieldAlert, Mic, MicOff, Volume2 } from "lucide-react";
+import { VideoOff, ShieldAlert, Mic, MicOff, Monitor } from "lucide-react";
 import { useCamera } from "../../services/useCamera";
 import { useMicrophone } from "../../services/useMicrophone";
+import { useScreenShare } from "../../services/useScreenShare";
 import { useAudioProcessing } from "../../services/useAudioProcessing";
 import { useSpeechToText } from "../../services/useSpeechToText";
 import { useFaceDetection } from "../../services/useFaceDetection";
@@ -82,11 +83,13 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const personTracking = usePersonTracking(gazeBehavior.faces, tracking.timestamp, isActive);
   const objectDetection = useObjectDetection(videoRef, isActive);
   const browserMonitoring = useBrowserMonitoring({ isActive: true });
+  const screenShare = useScreenShare();
   const faces = personTracking.faces;
 
   const compositeAlerts = useMemo(
     () =>
       [
+        ...screenShare.alerts,
         ...browserMonitoring.alerts,
         ...objectDetection.alerts,
         ...personTracking.alerts,
@@ -95,6 +98,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...speechBehavior.alerts,
       ].slice(0, 10),
     [
+      screenShare.alerts,
       browserMonitoring.alerts,
       objectDetection.alerts,
       personTracking.alerts,
@@ -107,6 +111,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const compositeEvidence = useMemo(
     () =>
       [
+        ...screenShare.evidenceEvents,
         ...browserMonitoring.evidenceEvents,
         ...objectDetection.evidenceEvents,
         ...personTracking.evidenceEvents,
@@ -115,6 +120,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...speechBehavior.evidenceEvents,
       ].slice(0, 10),
     [
+      screenShare.evidenceEvents,
       browserMonitoring.evidenceEvents,
       objectDetection.evidenceEvents,
       personTracking.evidenceEvents,
@@ -132,7 +138,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         objectDetection.risk.score +
         audioState.risk.score +
         speechBehavior.risk.score +
-        browserMonitoring.risk.score
+        browserMonitoring.risk.score +
+        screenShare.risk.score
     );
     let level = "Low Risk";
     if (
@@ -141,22 +148,30 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       objectDetection.summary.hasProhibited ||
       audioState.multipleSpeakersDetected ||
       speechBehavior.behavioralSignals.severity === "critical" ||
-      browserMonitoring.risk.level === "High Risk"
+      browserMonitoring.risk.level === "High Risk" ||
+      screenShare.risk.level === "High Risk"
     ) {
       level = "High Risk";
     } else if (
       rawScore >= 45 ||
       audioState.backgroundSpeech.detected ||
       speechBehavior.behavioralSignals.severity === "warning" ||
-      browserMonitoring.risk.level === "Elevated Risk"
+      browserMonitoring.risk.level === "Elevated Risk" ||
+      screenShare.risk.level === "Elevated Risk"
     ) {
       level = "Elevated Risk";
-    } else if (rawScore >= 20 || browserMonitoring.risk.level === "Moderate Risk") {
+    } else if (
+      rawScore >= 20 ||
+      browserMonitoring.risk.level === "Moderate Risk" ||
+      screenShare.risk.level === "Moderate Risk"
+    ) {
       level = "Moderate Risk";
     }
 
     const note =
-      browserMonitoring.risk.score >= 35
+      screenShare.risk.score >= 30
+        ? screenShare.risk.note
+        : browserMonitoring.risk.score >= 35
         ? browserMonitoring.risk.note
         : audioState.multipleSpeakersDetected
         ? audioState.risk.note
@@ -192,6 +207,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     speechBehavior.risk,
     speechBehavior.behavioralSignals,
     browserMonitoring.risk,
+    screenShare.risk,
   ]);
 
   useEffect(() => {
@@ -207,6 +223,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       objectRules: objectDetection.rules,
       onToggleObjectRule: objectDetection.toggleRule,
       browserMonitoring,
+      screenShare,
       microphone,
       audioState,
       transcriptState,
@@ -226,6 +243,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     objectDetection.rules,
     objectDetection.toggleRule,
     browserMonitoring,
+    screenShare,
     microphone,
     audioState,
     transcriptState,
@@ -325,6 +343,25 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
               ? "🎤 Mic denied"
               : "🎤 Mic offline"}
           </span>
+          <span
+            className={`badge ${
+              screenShare.isSharing
+                ? screenShare.isEntireScreen
+                  ? "badge-ready"
+                  : "badge-warn animate-pulse"
+                : screenShare.status === "permission_denied"
+                ? "badge-critical"
+                : "badge-idle"
+            }`}
+          >
+            {screenShare.isSharing
+              ? `🖥️ Screen (${screenShare.sharingDurationFormatted})`
+              : screenShare.status === "requesting"
+              ? "🖥️ Requesting screen…"
+              : screenShare.status === "permission_denied"
+              ? "🖥️ Screen denied"
+              : "🖥️ Screen offline"}
+          </span>
         </div>
       </div>
 
@@ -417,6 +454,21 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
             </button>
           </div>
         )}
+
+        <button
+          type="button"
+          className={`control-button ${screenShare.isSharing ? "control-active" : ""}`}
+          onClick={screenShare.isSharing ? screenShare.stop : screenShare.start}
+          disabled={screenShare.status === "requesting"}
+          title={screenShare.isSharing ? "Stop desktop screen sharing" : "Share desktop screen"}
+        >
+          <Monitor size={14} />
+          {screenShare.isSharing
+            ? "Stop Screen"
+            : screenShare.status === "requesting"
+            ? "Connecting…"
+            : "Share Screen"}
+        </button>
 
         <button
           type="button"

@@ -20,6 +20,7 @@ export const mockStatusCards = [
   { key: "audio", label: "Audio", state: "offline", description: "Microphone not connected" },
   { key: "objects", label: "Objects", state: "waiting", description: "Object detection idle" },
   { key: "system", label: "System Activity", state: "ready", description: "Browser activity idle" },
+  { key: "screen", label: "Screen Share", state: "offline", description: "Screen capture idle" },
 ];
 
 export const mockAlerts = [];

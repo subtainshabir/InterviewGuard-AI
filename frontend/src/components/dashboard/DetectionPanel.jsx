@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Boxes, Users, Eye, Mic, FileText, Activity, Monitor } from "lucide-react";
+import { Boxes, Users, Eye, Mic, FileText, Activity, Monitor, Cast } from "lucide-react";
 import GazeBehaviorView from "./GazeBehaviorView";
 import SpeechBehaviorView from "./SpeechBehaviorView";
 import PeopleDetectionView from "./PeopleDetectionView";
@@ -7,11 +7,13 @@ import ObjectDetectionView from "./ObjectDetectionView";
 import AudioDetectionView from "./AudioDetectionView";
 import TranscriptView from "./TranscriptView";
 import BrowserActivityView from "./BrowserActivityView";
+import ScreenShareView from "./ScreenShareView";
 
 const TABS = [
   { key: "people", label: "People", icon: Users, empty: "Awaiting camera feed" },
   { key: "gaze", label: "Gaze Behavior", icon: Eye, empty: "Awaiting gaze activity" },
   { key: "speechBehavior", label: "Speech Behavior", icon: Activity, empty: "Awaiting speech activity" },
+  { key: "screen", label: "Screen Share", icon: Cast, empty: "Screen share offline" },
   { key: "browser", label: "Browser Activity", icon: Monitor, empty: "No browser activity logged" },
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
   { key: "audio", label: "Audio", icon: Mic, empty: "Microphone idle" },
@@ -27,6 +29,7 @@ export default function DetectionPanel({
   objectRules,
   onToggleObjectRule,
   browserMonitoring,
+  screenShare,
   microphone,
   audioState,
   transcriptState,
@@ -71,6 +74,13 @@ export default function DetectionPanel({
               ⚠️ Paste ({browserMonitoring.clipboard.pasteCount})
             </span>
           ) : null}
+          {screenShare?.isSharing ? (
+            <span className={`badge ${screenShare.isEntireScreen ? "badge-ready" : "badge-warn animate-pulse"}`}>
+              🖥️ {screenShare.isEntireScreen ? "Screen Live" : `${screenShare.displaySurface} Shared`}
+            </span>
+          ) : screenShare?.status === "permission_denied" ? (
+            <span className="badge badge-critical">⚠️ Screen Denied</span>
+          ) : null}
         </div>
       </div>
 
@@ -86,6 +96,12 @@ export default function DetectionPanel({
             <Icon size={14} />
             {label}
             {key === "speechBehavior" && speechBehavior?.behavioralSignals?.severity && speechBehavior.behavioralSignals.severity !== "ready" && (
+              <span className="tab-warn-indicator animate-pulse">!</span>
+            )}
+            {key === "screen" && screenShare?.isSharing && (
+              <span className="tab-count-pill font-mono">Live</span>
+            )}
+            {key === "screen" && (screenShare?.status === "stopped" || screenShare?.status === "permission_denied") && (
               <span className="tab-warn-indicator animate-pulse">!</span>
             )}
             {key === "browser" && (browserMonitoring?.risk?.level === "High Risk" || browserMonitoring?.tabActivity?.isTabHidden || browserMonitoring?.fullscreen?.exitCount > 0) && (
@@ -113,6 +129,8 @@ export default function DetectionPanel({
         <GazeBehaviorView behavior={gazeBehavior} />
       ) : activeTab === "speechBehavior" ? (
         <SpeechBehaviorView behavior={speechBehavior} microphone={microphone} />
+      ) : activeTab === "screen" ? (
+        <ScreenShareView screenShare={screenShare} />
       ) : activeTab === "browser" ? (
         <BrowserActivityView browserMonitoring={browserMonitoring} />
       ) : activeTab === "objects" ? (

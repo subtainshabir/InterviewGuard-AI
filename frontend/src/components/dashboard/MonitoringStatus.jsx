@@ -276,6 +276,35 @@ export default function MonitoringStatus({ faceResult }) {
       };
     }
 
+    if (card.key === "screen") {
+      const sc = faceResult?.screenShare;
+      if (!sc) return card;
+      const { status, isSharing, isEntireScreen, displaySurface, resolution, sharingDurationFormatted } = sc;
+
+      if (isSharing) {
+        return {
+          ...card,
+          state: isEntireScreen ? "ready" : "waiting",
+          description: isEntireScreen
+            ? `Active (${resolution.width}×${resolution.height} · ${sharingDurationFormatted})`
+            : `Partial (${displaySurface} shared · ${sharingDurationFormatted})`,
+        };
+      }
+      if (status === "requesting") {
+        return { ...card, state: "waiting", description: "Requesting screen permission…" };
+      }
+      if (status === "permission_denied") {
+        return { ...card, state: "critical", description: "Screen share permission denied" };
+      }
+      if (status === "stopped") {
+        return { ...card, state: "waiting", description: "Screen share stopped" };
+      }
+      if (status === "unavailable") {
+        return { ...card, state: "offline", description: "Screen capture unavailable" };
+      }
+      return { ...card, state: "offline", description: "Screen share offline" };
+    }
+
     return card;
   });
 
