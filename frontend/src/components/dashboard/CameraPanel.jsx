@@ -13,6 +13,7 @@ import { useGazeBehaviorAnalysis } from "../../services/useGazeBehaviorAnalysis"
 import { useSpeechBehaviorAnalysis } from "../../services/useSpeechBehaviorAnalysis";
 import { usePersonTracking } from "../../services/usePersonTracking";
 import { useObjectDetection } from "../../services/useObjectDetection";
+import { useBrowserMonitoring } from "../../services/useBrowserMonitoring";
 import CameraVideo from "./CameraVideo";
 import FaceOverlay from "./FaceOverlay";
 
@@ -80,11 +81,13 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const speechBehavior = useSpeechBehaviorAnalysis(audioState, transcriptState, isActive);
   const personTracking = usePersonTracking(gazeBehavior.faces, tracking.timestamp, isActive);
   const objectDetection = useObjectDetection(videoRef, isActive);
+  const browserMonitoring = useBrowserMonitoring({ isActive: true });
   const faces = personTracking.faces;
 
   const compositeAlerts = useMemo(
     () =>
       [
+        ...browserMonitoring.alerts,
         ...objectDetection.alerts,
         ...personTracking.alerts,
         ...gazeBehavior.alerts,
@@ -92,6 +95,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...speechBehavior.alerts,
       ].slice(0, 10),
     [
+      browserMonitoring.alerts,
       objectDetection.alerts,
       personTracking.alerts,
       gazeBehavior.alerts,
@@ -103,6 +107,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
   const compositeEvidence = useMemo(
     () =>
       [
+        ...browserMonitoring.evidenceEvents,
         ...objectDetection.evidenceEvents,
         ...personTracking.evidenceEvents,
         ...gazeBehavior.evidenceEvents,
@@ -110,6 +115,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         ...speechBehavior.evidenceEvents,
       ].slice(0, 10),
     [
+      browserMonitoring.evidenceEvents,
       objectDetection.evidenceEvents,
       personTracking.evidenceEvents,
       gazeBehavior.evidenceEvents,
@@ -125,7 +131,8 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
         personTracking.risk.score +
         objectDetection.risk.score +
         audioState.risk.score +
-        speechBehavior.risk.score
+        speechBehavior.risk.score +
+        browserMonitoring.risk.score
     );
     let level = "Low Risk";
     if (
@@ -133,34 +140,39 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       personTracking.summary.isMultiplePeople ||
       objectDetection.summary.hasProhibited ||
       audioState.multipleSpeakersDetected ||
-      speechBehavior.behavioralSignals.severity === "critical"
+      speechBehavior.behavioralSignals.severity === "critical" ||
+      browserMonitoring.risk.level === "High Risk"
     ) {
       level = "High Risk";
     } else if (
       rawScore >= 45 ||
       audioState.backgroundSpeech.detected ||
-      speechBehavior.behavioralSignals.severity === "warning"
+      speechBehavior.behavioralSignals.severity === "warning" ||
+      browserMonitoring.risk.level === "Elevated Risk"
     ) {
       level = "Elevated Risk";
-    } else if (rawScore >= 20) {
+    } else if (rawScore >= 20 || browserMonitoring.risk.level === "Moderate Risk") {
       level = "Moderate Risk";
     }
 
-    const note = audioState.multipleSpeakersDetected
-      ? audioState.risk.note
-      : objectDetection.summary.hasProhibited
-      ? objectDetection.risk.note
-      : personTracking.summary.isMultiplePeople
-      ? personTracking.risk.note
-      : speechBehavior.behavioralSignals.severity === "critical"
-      ? speechBehavior.risk.note
-      : audioState.backgroundSpeech.detected
-      ? audioState.risk.note
-      : speechBehavior.behavioralSignals.severity === "warning"
-      ? speechBehavior.risk.note
-      : personTracking.summary.isCandidateAbsent
-      ? personTracking.risk.note
-      : gazeBehavior.risk.note;
+    const note =
+      browserMonitoring.risk.score >= 35
+        ? browserMonitoring.risk.note
+        : audioState.multipleSpeakersDetected
+        ? audioState.risk.note
+        : objectDetection.summary.hasProhibited
+        ? objectDetection.risk.note
+        : personTracking.summary.isMultiplePeople
+        ? personTracking.risk.note
+        : speechBehavior.behavioralSignals.severity === "critical"
+        ? speechBehavior.risk.note
+        : audioState.backgroundSpeech.detected
+        ? audioState.risk.note
+        : speechBehavior.behavioralSignals.severity === "warning"
+        ? speechBehavior.risk.note
+        : personTracking.summary.isCandidateAbsent
+        ? personTracking.risk.note
+        : gazeBehavior.risk.note;
 
     return {
       score: rawScore,
@@ -179,6 +191,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     audioState.multipleSpeakersDetected,
     speechBehavior.risk,
     speechBehavior.behavioralSignals,
+    browserMonitoring.risk,
   ]);
 
   useEffect(() => {
@@ -193,6 +206,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
       objectModelStatus: objectDetection.modelStatus,
       objectRules: objectDetection.rules,
       onToggleObjectRule: objectDetection.toggleRule,
+      browserMonitoring,
       microphone,
       audioState,
       transcriptState,
@@ -211,6 +225,7 @@ export default function CameraPanel({ hasSession, onFaceStatusChange }) {
     objectDetection.modelStatus,
     objectDetection.rules,
     objectDetection.toggleRule,
+    browserMonitoring,
     microphone,
     audioState,
     transcriptState,

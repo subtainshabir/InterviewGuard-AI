@@ -56,6 +56,7 @@ export default function Dashboard() {
             audioState={faceResult?.audioState}
             transcriptState={faceResult?.transcriptState}
             speechBehavior={faceResult?.speechBehaviorFull}
+            browserMonitoring={faceResult?.browserMonitoring}
           />
         </div>
 

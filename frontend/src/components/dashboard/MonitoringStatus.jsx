@@ -220,6 +220,62 @@ export default function MonitoringStatus({ faceResult }) {
       return card;
     }
 
+    if (card.key === "system") {
+      const bm = faceResult?.browserMonitoring;
+      if (!bm) return card;
+      const { summary, integrityScore, tabActivity, windowFocus, fullscreen, clipboard, shortcuts } = bm;
+
+      if (tabActivity?.isTabHidden) {
+        return {
+          ...card,
+          state: "critical",
+          description: `CRITICAL: Away from tab (${summary?.currentAwayFormatted || "active"})`,
+        };
+      }
+      if (!windowFocus?.isFocused) {
+        return {
+          ...card,
+          state: "waiting",
+          description: `WARNING: Window unfocused (${Math.round((windowFocus?.currentBlurDurationMs || 0) / 1000)}s)`,
+        };
+      }
+      if (clipboard?.pasteCount > 0) {
+        return {
+          ...card,
+          state: "critical",
+          description: `ALERT: Pasted text detected (${clipboard.pasteCount}x)`,
+        };
+      }
+      if (fullscreen?.exitCount > 0) {
+        return {
+          ...card,
+          state: "critical",
+          description: `ALERT: Fullscreen exited (${fullscreen.exitCount}x)`,
+        };
+      }
+      if (tabActivity?.switchCount > 0) {
+        return {
+          ...card,
+          state: tabActivity.switchCount >= 3 ? "critical" : "waiting",
+          description: `Tab switched (${tabActivity.switchCount}x · ${summary?.totalAwayFormatted || "0s"} away)`,
+        };
+      }
+      if (shortcuts?.blockedCount > 0) {
+        return {
+          ...card,
+          state: "waiting",
+          description: `Shortcut flagged: ${shortcuts.lastShortcut || `${shortcuts.blockedCount}x`}`,
+        };
+      }
+      return {
+        ...card,
+        state: "ready",
+        description: fullscreen?.isFullscreen
+          ? `In Focus · Fullscreen (${integrityScore}% integrity)`
+          : `In Focus · Windowed (${integrityScore}% integrity)`,
+      };
+    }
+
     return card;
   });
 

@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Boxes, Users, Eye, Mic, FileText, Activity } from "lucide-react";
+import { Boxes, Users, Eye, Mic, FileText, Activity, Monitor } from "lucide-react";
 import GazeBehaviorView from "./GazeBehaviorView";
 import SpeechBehaviorView from "./SpeechBehaviorView";
 import PeopleDetectionView from "./PeopleDetectionView";
 import ObjectDetectionView from "./ObjectDetectionView";
 import AudioDetectionView from "./AudioDetectionView";
 import TranscriptView from "./TranscriptView";
+import BrowserActivityView from "./BrowserActivityView";
 
 const TABS = [
   { key: "people", label: "People", icon: Users, empty: "Awaiting camera feed" },
   { key: "gaze", label: "Gaze Behavior", icon: Eye, empty: "Awaiting gaze activity" },
   { key: "speechBehavior", label: "Speech Behavior", icon: Activity, empty: "Awaiting speech activity" },
+  { key: "browser", label: "Browser Activity", icon: Monitor, empty: "No browser activity logged" },
   { key: "objects", label: "Objects", icon: Boxes, empty: "No objects detected" },
   { key: "audio", label: "Audio", icon: Mic, empty: "Microphone idle" },
   { key: "transcript", label: "Transcript", icon: FileText, empty: "No speech transcribed" },
@@ -24,6 +26,7 @@ export default function DetectionPanel({
   objectModelStatus,
   objectRules,
   onToggleObjectRule,
+  browserMonitoring,
   microphone,
   audioState,
   transcriptState,
@@ -55,6 +58,19 @@ export default function DetectionPanel({
               🎤 Speaking ({audioState.volume}%)
             </span>
           ) : null}
+          {browserMonitoring?.tabActivity?.isTabHidden ? (
+            <span className="badge badge-critical animate-pulse">
+              ⚠️ Tab Switched
+            </span>
+          ) : !browserMonitoring?.windowFocus?.isFocused ? (
+            <span className="badge badge-warning animate-pulse">
+              ⚠️ Focus Lost
+            </span>
+          ) : browserMonitoring?.clipboard?.pasteCount > 0 ? (
+            <span className="badge badge-critical">
+              ⚠️ Paste ({browserMonitoring.clipboard.pasteCount})
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -71,6 +87,12 @@ export default function DetectionPanel({
             {label}
             {key === "speechBehavior" && speechBehavior?.behavioralSignals?.severity && speechBehavior.behavioralSignals.severity !== "ready" && (
               <span className="tab-warn-indicator animate-pulse">!</span>
+            )}
+            {key === "browser" && (browserMonitoring?.risk?.level === "High Risk" || browserMonitoring?.tabActivity?.isTabHidden || browserMonitoring?.fullscreen?.exitCount > 0) && (
+              <span className="tab-warn-indicator animate-pulse">!</span>
+            )}
+            {key === "browser" && browserMonitoring?.browserEvents?.length > 0 && (
+              <span className="tab-count-pill">{browserMonitoring.browserEvents.length}</span>
             )}
             {key === "audio" && audioState?.multipleSpeakersDetected && (
               <span className="tab-warn-indicator animate-pulse">!</span>
@@ -91,6 +113,8 @@ export default function DetectionPanel({
         <GazeBehaviorView behavior={gazeBehavior} />
       ) : activeTab === "speechBehavior" ? (
         <SpeechBehaviorView behavior={speechBehavior} microphone={microphone} />
+      ) : activeTab === "browser" ? (
+        <BrowserActivityView browserMonitoring={browserMonitoring} />
       ) : activeTab === "objects" ? (
         <ObjectDetectionView
           objectSummary={objectSummary}
